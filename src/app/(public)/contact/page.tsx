@@ -83,7 +83,7 @@ export default function ContactPage() {
           <SimpleGrid cols={1} spacing={30}>
             <ContactIcon
               title="Email"
-              description="hello@blogora.com"
+              description="hello@thedailymixa.com"
               icon={IconMail}
             />
             <ContactIcon

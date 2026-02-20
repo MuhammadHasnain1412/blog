@@ -63,7 +63,7 @@ export default async function PublicLayout({
                 }}
                 ta="center"
               >
-                Blogora
+                The Daily Mixa
               </Title>
             </Link>
             <Divider my="md" w={100} color="dark" size="xl" />
@@ -136,7 +136,7 @@ export default async function PublicLayout({
         <Container size="xl">
           <Stack align="center" gap="xl">
             <Title order={2} style={{ letterSpacing: "2px" }}>
-              Blogora
+              The Daily Mixa
             </Title>
             <Text c="dimmed" ta="center" maw={600} size="sm">
               Providing modern storytelling and global insights. Your source for
@@ -170,7 +170,7 @@ export default async function PublicLayout({
             </Group>
             <Divider w="100%" />
             <Text size="xs" c="dimmed">
-              © {new Date().getFullYear()} Blogora. All rights reserved.
+              © {new Date().getFullYear()} The Daily Mixa. All rights reserved.
             </Text>
           </Stack>
         </Container>

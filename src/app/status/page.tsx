@@ -24,7 +24,7 @@ export default function Home() {
         </ThemeIcon>
 
         <Title order={1} ta="center" fz={48} fw={900}>
-          Blog Platform Complete! 🎉
+          The Daily Mixa — Live! 🎉
         </Title>
 
         <Text c="dimmed" ta="center" size="lg" maw={500} mx="auto">

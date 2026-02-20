@@ -25,13 +25,13 @@ export default function AboutPage() {
               letterSpacing: "2px",
             }}
           >
-            About Blogora
+            About The Daily Mixa
           </Title>
           <Divider w={100} size="xl" color="dark" />
         </Stack>
 
         <Text size="xl" lh={1.6} c="dimmed" ta="center">
-          Blogora is a modern digital publication dedicated to bringing you the
+          The Daily Mixa is a modern digital publication dedicated to bringing you the
           latest stories from around the globe. We believe in the power of
           storytelling to connect people, inspire change, and foster
           understanding.
@@ -60,7 +60,7 @@ export default function AboutPage() {
             Our Mission
           </Title>
           <Text mb="md">
-            Founded in 2024, Blogora has quickly grown from a small side project
+            Founded in 2024, The Daily Mixa has quickly grown from a small side project
             to a respected source of news and culture. Our mission is to
             democratize access to high-quality information and provide a
             platform for underrepresented voices.

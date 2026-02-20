@@ -79,7 +79,7 @@ export default function AdminShell({
               hiddenFrom="sm"
               size="sm"
             />
-            <Title order={3}>Blogora</Title>
+            <Title order={3}>The Daily Mixa</Title>
           </Group>
           <Group visibleFrom="sm" px="md">
             {user && (

@@ -4,14 +4,14 @@ import bcrypt from "bcryptjs";
 const db = new PrismaClient();
 
 async function main() {
-  console.log("🚀 Starting Blogora Database Seeding...");
+  console.log("🚀 Starting The Daily Mixa Database Seeding...");
 
   // Clear existing data to ensure a clean slate
   await db.post.deleteMany({});
   await db.category.deleteMany({});
 
   // 1. Create ADMIN User
-  const adminEmail = "admin@blogora.com";
+  const adminEmail = "admin@thedailymixa.com";
   const adminPassword = "admin123";
   const adminHash = await bcrypt.hash(adminPassword, 10);
 
@@ -27,7 +27,7 @@ async function main() {
   });
 
   // 2. Create EDITOR User
-  const editorEmail = "editor@blogora.com";
+  const editorEmail = "editor@thedailymixa.com";
   const editorPassword = "editor123";
   const editorHash = await bcrypt.hash(editorPassword, 10);
 
@@ -43,7 +43,7 @@ async function main() {
   });
 
   // 3. Create AUTHOR User
-  const authorEmail = "author@blogora.com";
+  const authorEmail = "author@thedailymixa.com";
   const authorPassword = "author123";
   const authorHash = await bcrypt.hash(authorPassword, 10);
 
