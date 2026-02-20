@@ -1,0 +1,63 @@
+body {
+  /* Reset or base styles if Mantine doesn't cover everything */
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+.hover-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease !important;
+}
+
+.hover-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--mantine-shadow-md);
+}
+
+/* News Magazine Styles */
+.hover-zoom {
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.news-card:hover .hover-zoom {
+  transform: scale(1.05);
+}
+
+.hover-dark {
+  transition: color 0.2s ease;
+}
+
+.hover-dark:hover {
+  color: #000 !important;
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3,
+h4,
+th {
+  letter-spacing: -0.02em;
+}
+
+.news-list-divider {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 2rem;
+  margin-bottom: 2rem;
+}
+
+.news-list-divider:last-child {
+  border-bottom: none;
+}
+
+/* Custom scrollbar for horizontal nav */
+::-webkit-scrollbar {
+  height: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #eee;
+  border-radius: 2px;
+}

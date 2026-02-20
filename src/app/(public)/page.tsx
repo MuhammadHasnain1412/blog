@@ -1,0 +1,351 @@
+import { db } from "@/lib/prisma";
+import {
+  Container,
+  Title,
+  Text,
+  Card,
+  Image,
+  Badge,
+  Group,
+  Stack,
+  Divider,
+  Box,
+  SimpleGrid,
+  Flex,
+} from "@mantine/core";
+import Link from "next/link";
+
+export const dynamic = "force-dynamic";
+
+export default async function BlogHome() {
+  const posts = await db.post.findMany({
+    where: { status: "PUBLISHED" },
+    include: { author: true, category: true },
+    orderBy: { publishedAt: "desc" },
+  });
+
+  // Dynamically group posts by category instead of using "dummy" hardcoded sections
+  const categoryMap = posts.reduce(
+    (acc, post) => {
+      if (!acc[post.category.id]) {
+        acc[post.category.id] = {
+          name: post.category.name,
+          slug: post.category.slug,
+          posts: [],
+        };
+      }
+      acc[post.category.id].posts.push(post);
+      return acc;
+    },
+    {} as Record<string, { name: string; slug: string; posts: any[] }>,
+  );
+
+  const heroPost = posts[0];
+  const remainingPosts = posts.slice(1);
+  const categoriesWithPosts = Object.values(categoryMap);
+
+  if (posts.length === 0) {
+    return (
+      <Container size="md" py={120}>
+        <Stack align="center" gap="xl">
+          <SectionHeader title="Welcome to Blogora" />
+          <Text c="dimmed" ta="center" size="lg" maw={500}>
+            We're currently preparing our latest stories. Check back soon for
+            updates on World News, Celebrity insights, and more.
+          </Text>
+        </Stack>
+      </Container>
+    );
+  }
+
+  return (
+    <Container size="xl" py="xl">
+      <Stack gap={60}>
+        {/* Dynamic Category Sections */}
+        {categoriesWithPosts.slice(0, 2).map((cat) => (
+          <section key={cat.slug}>
+            <SectionHeader title={cat.name} slug={cat.slug} />
+            <SimpleGrid
+              cols={{ base: 1, sm: 2, md: cat.posts.length > 3 ? 4 : 3 }}
+              spacing="xl"
+            >
+              {cat.posts.slice(0, 4).map((post) => (
+                <NewsCard
+                  key={post.id}
+                  post={post}
+                  compact={cat.posts.length > 3}
+                />
+              ))}
+            </SimpleGrid>
+          </section>
+        ))}
+
+        {/* FEATURED SECTION */}
+        {heroPost && (
+          <section>
+            <SectionHeader
+              title="FEATURED STORY"
+              slug={`${heroPost.category.slug}/${heroPost.slug}`}
+            />
+            <Flex direction={{ base: "column", md: "row" }} gap="xl">
+              <Box style={{ flex: 7 }}>
+                <Link
+                  href={`/${heroPost.category.slug}/${heroPost.slug}`}
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <Box
+                    style={{
+                      position: "relative",
+                      overflow: "hidden",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    <Image
+                      src={
+                        heroPost.coverImage ||
+                        "https://images.unsplash.com/photo-1504711428567-d1213501df05?auto=format&fit=crop&q=80&w=1200"
+                      }
+                      height={450}
+                      alt={heroPost.title}
+                      className="hover-zoom"
+                    />
+                  </Box>
+                </Link>
+              </Box>
+              <Box style={{ flex: 5 }}>
+                <Stack justify="center" h="100%" gap="md">
+                  <Badge color="dark" size="lg" radius="xs">
+                    {heroPost.category.name}
+                  </Badge>
+                  <Link
+                    href={`/${heroPost.category.slug}/${heroPost.slug}`}
+                    style={{ textDecoration: "none", color: "inherit" }}
+                  >
+                    <Title
+                      order={1}
+                      style={{ fontSize: "2.5rem", lineHeight: 1.1 }}
+                    >
+                      {heroPost.title}
+                    </Title>
+                  </Link>
+                  <Text size="lg" c="dimmed" lineClamp={3}>
+                    {heroPost.excerpt}
+                  </Text>
+                  <Group gap="xs">
+                    <Text fw={700} size="sm">
+                      By {heroPost.author.name}
+                    </Text>
+                    <span style={{ color: "var(--mantine-color-gray-4)" }}>
+                      •
+                    </span>
+                    <Text size="sm" c="dimmed">
+                      {new Date(
+                        heroPost.publishedAt || heroPost.createdAt,
+                      ).toLocaleDateString()}
+                    </Text>
+                  </Group>
+                </Stack>
+              </Box>
+            </Flex>
+          </section>
+        )}
+
+        {/* LATEST LIST SECTION */}
+        <section>
+          <SectionHeader title="LATEST NEWS" />
+          <Flex gap="xl" direction={{ base: "column", md: "row" }}>
+            <Box style={{ flex: 2 }}>
+              <Stack gap="xl">
+                {posts.slice(0, 10).map((post) => (
+                  <NewsListItem key={post.id} post={post} />
+                ))}
+              </Stack>
+            </Box>
+            <Box style={{ flex: 1 }}>
+              <Box style={{ position: "sticky", top: 80 }}>
+                <Stack gap="xl">
+                  <Box
+                    p="xl"
+                    bg="gray.0"
+                    style={{ borderLeft: "4px solid #000" }}
+                  >
+                    <Title order={4} mb="md">
+                      SUBSCRIBE
+                    </Title>
+                    <Text size="sm" mb="md">
+                      Get the latest news directly in your inbox.
+                    </Text>
+                    <Text
+                      size="xs"
+                      fw={700}
+                      tt="uppercase"
+                      td="underline"
+                      style={{ cursor: "pointer" }}
+                    >
+                      Join Now
+                    </Text>
+                  </Box>
+
+                  <Box>
+                    <Title
+                      order={4}
+                      mb="md"
+                      td="underline"
+                      style={{ textDecorationThickness: "2px" }}
+                    >
+                      TRENDING
+                    </Title>
+                    <Stack gap="sm">
+                      {posts.slice(0, 5).map((p, i) => (
+                        <Group
+                          key={p.id}
+                          wrap="nowrap"
+                          align="flex-start"
+                          gap="md"
+                        >
+                          <Text size="xl" fw={900} c="gray.3" lh={1}>
+                            {i + 1}
+                          </Text>
+                          <Link
+                            href={`/${p.category.slug}/${p.slug}`}
+                            style={{ textDecoration: "none", color: "inherit" }}
+                          >
+                            <Text
+                              size="sm"
+                              fw={700}
+                              lineClamp={2}
+                              className="hover-dark"
+                            >
+                              {p.title}
+                            </Text>
+                          </Link>
+                        </Group>
+                      ))}
+                    </Stack>
+                  </Box>
+                </Stack>
+              </Box>
+            </Box>
+          </Flex>
+        </section>
+      </Stack>
+    </Container>
+  );
+}
+
+function SectionHeader({ title, slug }: { title: string; slug?: string }) {
+  return (
+    <Stack gap={10} mb={40} align="center">
+      <Link
+        href={slug ? (slug.includes("/") ? `/${slug}` : `/${slug}`) : "#"}
+        style={{ textDecoration: "none", color: "inherit" }}
+      >
+        <Title
+          order={2}
+          style={{
+            letterSpacing: "4px",
+            fontSize: "1.8rem",
+            textTransform: "uppercase",
+          }}
+        >
+          {title}
+        </Title>
+      </Link>
+      <Divider w={60} color="dark" size="lg" />
+    </Stack>
+  );
+}
+
+function NewsCard({ post, compact = false }: { post: any; compact?: boolean }) {
+  return (
+    <Link
+      href={`/${post.category.slug}/${post.slug}`}
+      style={{ textDecoration: "none", color: "inherit" }}
+    >
+      <Card p={0} radius={0} bg="transparent" className="news-card">
+        <Stack gap="sm">
+          <Box style={{ overflow: "hidden" }}>
+            <Image
+              src={
+                post.coverImage ||
+                "https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=800"
+              }
+              height={compact ? 180 : 240}
+              alt={post.title}
+              className="hover-zoom"
+            />
+          </Box>
+          <Stack gap={4}>
+            <Title
+              order={3}
+              lineClamp={2}
+              style={{
+                fontSize: compact ? "1.1rem" : "1.25rem",
+                lineHeight: 1.2,
+              }}
+            >
+              {post.title}
+            </Title>
+            {!compact && (
+              <Text size="sm" c="dimmed" lineClamp={2}>
+                {post.excerpt}
+              </Text>
+            )}
+            <Text size="xs" fw={700} c="dimmed" tt="uppercase" mt={4}>
+              {post.category.name} •{" "}
+              {new Date(
+                post.publishedAt || post.createdAt,
+              ).toLocaleDateString()}
+            </Text>
+          </Stack>
+        </Stack>
+      </Card>
+    </Link>
+  );
+}
+
+function NewsListItem({ post }: { post: any }) {
+  return (
+    <Link
+      href={`/${post.category.slug}/${post.slug}`}
+      style={{ textDecoration: "none", color: "inherit" }}
+    >
+      <Flex gap="xl" direction={{ base: "column", sm: "row" }}>
+        <Box style={{ flex: 1 }}>
+          <Box style={{ overflow: "hidden" }}>
+            <Image
+              src={
+                post.coverImage ||
+                "https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=800"
+              }
+              height={160}
+              alt={post.title}
+              className="hover-zoom"
+            />
+          </Box>
+        </Box>
+        <Box style={{ flex: 2 }}>
+          <Stack gap="xs">
+            <Badge color="dark" size="xs" radius="xs">
+              {post.category.name}
+            </Badge>
+            <Title order={3} lineClamp={2} style={{ fontSize: "1.5rem" }}>
+              {post.title}
+            </Title>
+            <Stack gap={4}>
+              <Text size="sm" c="dimmed" lineClamp={2} hiddenFrom="xs">
+                {post.excerpt}
+              </Text>
+              <Text size="xs" c="dimmed">
+                By {post.author.name} •{" "}
+                {new Date(
+                  post.publishedAt || post.createdAt,
+                ).toLocaleDateString()}
+              </Text>
+            </Stack>
+          </Stack>
+        </Box>
+      </Flex>
+    </Link>
+  );
+}

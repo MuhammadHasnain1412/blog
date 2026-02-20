@@ -1,0 +1,1 @@
+@mantine/core @mantine/hooks @mantine/tiptap @tabler/icons-react @tiptap/extension-link @tiptap/react @tiptap/starter-kit clsx next next-auth react react-dom zod

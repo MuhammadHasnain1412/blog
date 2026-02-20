@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model category {
+  id             String     @id @default(cuid())
+  name           String     @unique(map: "Category_name_key")
+  slug           String     @unique(map: "Category_slug_key")
+  description    String?    @db.Text
+  parentId       String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  category       category?  @relation("categoryTocategory", fields: [parentId], references: [id], map: "Category_parentId_fkey")
+  other_category category[] @relation("categoryTocategory")
+  post           post[]
+
+  @@index([parentId], map: "Category_parentId_fkey")
+  @@index([slug], map: "Category_slug_idx")
+}
+
+model post {
+  id              String      @id @default(cuid())
+  title           String
+  slug            String      @unique(map: "Post_slug_key")
+  content         String      @db.LongText
+  excerpt         String?     @db.Text
+  coverImage      String?
+  status          post_status @default(DRAFT)
+  authorId        String
+  lastUpdatedById String?
+  categoryId      String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  publishedAt     DateTime?
+
+  author      user     @relation("PostAuthor", fields: [authorId], references: [id], map: "Post_authorId_fkey")
+  lastUpdater user?    @relation("PostUpdater", fields: [lastUpdatedById], references: [id], map: "Post_lastUpdatedById_fkey")
+  category    category @relation(fields: [categoryId], references: [id], map: "Post_categoryId_fkey")
+
+  @@index([authorId], map: "Post_authorId_idx")
+  @@index([lastUpdatedById], map: "Post_lastUpdatedById_idx")
+  @@index([categoryId], map: "Post_categoryId_idx")
+  @@index([slug], map: "Post_slug_idx")
+  @@index([status, publishedAt], map: "Post_status_publishedAt_idx")
+}
+
+model user {
+  id           String    @id @default(cuid())
+  email        String    @unique(map: "User_email_key")
+  name         String?
+  passwordHash String
+  role         user_role @default(AUTHOR)
+  bio          String?   @db.Text
+  avatarUrl    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  posts        post[] @relation("PostAuthor")
+  updatedPosts post[] @relation("PostUpdater")
+
+  @@index([email], map: "User_email_idx")
+}
+
+enum user_role {
+  ADMIN
+  EDITOR
+  AUTHOR
+}
+
+enum post_status {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
