@@ -17,11 +17,10 @@ import { IconAlertCircle } from "@tabler/icons-react";
 
 export default function LoginPage() {
   const [errorMessage, dispatch] = useActionState(authenticate, undefined);
-
   return (
     <Container size={420} my={40}>
       <Title ta="center" mb={30}>
-        Blogora Login
+        The Daily Mixa Login
       </Title>
 
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
