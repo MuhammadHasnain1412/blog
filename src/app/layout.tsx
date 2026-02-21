@@ -8,7 +8,7 @@ import { auth } from "@/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "he Daily Mixa",
+  title: "The Daily Mixa",
   description: "Modern Magazine & News Platform",
 };
 

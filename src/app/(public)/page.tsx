@@ -48,7 +48,7 @@ export default async function BlogHome() {
     return (
       <Container size="md" py={120}>
         <Stack align="center" gap="xl">
-          <SectionHeader title="Welcome to Blogora" />
+          <SectionHeader title="Welcome to The Daily Mixa" />
           <Text c="dimmed" ta="center" size="lg" maw={500}>
             We're currently preparing our latest stories. Check back soon for
             updates on World News, Celebrity insights, and more.
