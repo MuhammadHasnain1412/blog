@@ -16,18 +16,19 @@ import { user_role } from "@prisma/client";
 export default async function EditPostPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const post = await db.post.findUnique({
-    where: { id: params.id },
+    where: { id },
   });
 
   if (!post) notFound();
 
-  // Permission Check
   const userRole = (user as any).role as user_role;
   const userSession = {
     id: (user as any).id,
