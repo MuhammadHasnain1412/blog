@@ -1,13 +1,6 @@
 import { db } from "@/lib/prisma";
 import PostForm from "@/components/posts/PostForm";
-import {
-  Title,
-  Container,
-  Stack,
-  Breadcrumbs,
-  Anchor,
-  Text,
-} from "@mantine/core";
+import { Title, Container, Stack, Breadcrumbs, Text } from "@mantine/core"; 
 import { getCurrentUser, canEditPost } from "@/lib/rbac";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -49,12 +42,18 @@ export default async function EditPostPage({
     <Container size="xl">
       <Stack gap="xl">
         <Breadcrumbs>
-          <Anchor component={Link} href="/dashboard">
+          <Link
+            href="/dashboard"
+            style={{ color: "inherit", textDecoration: "none" }}
+          >
             Dashboard
-          </Anchor>
-          <Anchor component={Link} href="/dashboard/posts">
+          </Link>
+          <Link
+            href="/dashboard/posts"
+            style={{ color: "inherit", textDecoration: "none" }}
+          >
             Posts
-          </Anchor>
+          </Link>
           <Text size="sm">Edit Post</Text>
         </Breadcrumbs>
 
