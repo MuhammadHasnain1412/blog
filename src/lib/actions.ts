@@ -14,6 +14,7 @@ import { put } from "@vercel/blob";
 import { loginLimiter, uploadLimiter } from "@/lib/rate-limit";
 import DOMPurify from "isomorphic-dompurify";
 import { createSafeAction } from "@/lib/safe-action";
+import { assertBlobConfigured } from "@/lib/env";
 
 // ── Shared IP helper ──────────────────────────────────────────────────────────
 
@@ -101,6 +102,7 @@ export const createPost = createSafeAction(
       }
 
       try {
+        assertBlobConfigured();
         const uniqueName =
           crypto.randomUUID() + extname(file.name).toLowerCase();
         const blob = await put(`uploads/${uniqueName}`, file, {
@@ -242,6 +244,7 @@ export const updatePost = createSafeAction(
       }
 
       try {
+        assertBlobConfigured();
         const uniqueName =
           crypto.randomUUID() + extname(file.name).toLowerCase();
         const blob = await put(`uploads/${uniqueName}`, file, {

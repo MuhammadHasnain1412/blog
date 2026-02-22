@@ -8,11 +8,14 @@
  * and then throwing cryptic DB connection errors at runtime.
  */
 
+/**
+ * Core variables — the app CANNOT run at all without these.
+ * Missing any of these throws at startup (fast-fail).
+ */
 const REQUIRED_ENV_VARS = [
   "DATABASE_URL",
   "AUTH_SECRET",
   "NEXTAUTH_URL",
-  "BLOB_READ_WRITE_TOKEN", // ✅ Required since @vercel/blob image upload migration
 ] as const;
 
 export function validateEnv() {
@@ -30,3 +33,21 @@ export function validateEnv() {
 
 // ✅ Called immediately on import — fails fast at startup, not mid-request
 validateEnv();
+
+/**
+ * Feature-level guard: Image uploads require BLOB_READ_WRITE_TOKEN.
+ *
+ * Call this inside the upload handler (not at startup) so a missing
+ * blob token only breaks image uploads, not the entire site.
+ *
+ * Usage in actions.ts:
+ *   assertBlobConfigured();
+ */
+export function assertBlobConfigured(): void {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error(
+      "Image uploads are not configured on this server. " +
+        "Add BLOB_READ_WRITE_TOKEN to your .env file.",
+    );
+  }
+}
