@@ -35,10 +35,23 @@ export default async function PostsPage() {
   };
 
   const posts = await db.post.findMany({
-    include: {
-      author: true,
-      lastUpdater: true,
-      category: true,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      status: true,
+      authorId: true,
+      lastUpdatedById: true,
+      createdAt: true,
+      author: {
+        select: { name: true }, 
+      },
+      lastUpdater: {
+        select: { name: true },
+      },
+      category: {
+        select: { name: true, slug: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });

@@ -1,12 +1,60 @@
-import type { NextAuthConfig } from "next-auth";
+// src/auth.config.ts
+
+const isProduction = process.env.NODE_ENV === "production";
 
 export const authConfig = {
   trustHost: true,
+
   pages: {
     signIn: "/login",
+    error: "/login", // ✅ Don't expose /api/auth/error — send errors to login page
   },
+
+  // ✅ MUST DO: Secure cookie configuration
+  cookies: {
+    sessionToken: {
+      name: isProduction
+        ? "__Secure-authjs.session-token"
+        : "authjs.session-token",
+      options: {
+        httpOnly: true, // JS cannot read this cookie
+        sameSite: "lax", // Protects against CSRF on navigation
+        path: "/",
+        secure: isProduction, // HTTPS only in production
+      },
+    },
+    callbackUrl: {
+      name: isProduction
+        ? "__Secure-authjs.callback-url"
+        : "authjs.callback-url",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProduction,
+      },
+    },
+    csrfToken: {
+      name: isProduction
+        ? "__Host-authjs.csrf-token" // __Host- prefix = stricter than __Secure-
+        : "authjs.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProduction,
+      },
+    },
+  },
+
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
+    authorized({
+      auth,
+      request: { nextUrl },
+    }: {
+      auth: any;
+      request: { nextUrl: any };
+    }) {
       const isLoggedIn = !!auth?.user;
       const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
       const isOnLogin = nextUrl.pathname === "/login";
@@ -20,5 +68,6 @@ export const authConfig = {
       return true;
     },
   },
-  providers: [], // Add providers with an empty array for now
-} satisfies NextAuthConfig;
+
+  providers: [],
+};

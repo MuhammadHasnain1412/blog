@@ -1,3 +1,4 @@
+// src/auth.ts
 import NextAuth from "next-auth";
 import { authConfig } from "./auth.config";
 import Credentials from "next-auth/providers/credentials";
@@ -5,12 +6,22 @@ import { z } from "zod";
 import { db } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+const FIFTEEN_MINUTES = 15 * 60;
+const ONE_DAY = 24 * 60 * 60;
+const THIRTY_DAYS = 30 * ONE_DAY;
+
 async function getUser(email: string) {
   try {
-    const user = await db.user.findUnique({
+    return await db.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        passwordHash: true,
+        role: true,
+      },
     });
-    return user;
   } catch (error) {
     console.error("Failed to fetch user:", error);
     throw new Error("Failed to fetch user.");
@@ -19,49 +30,85 @@ async function getUser(email: string) {
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig,
+
+  // ✅ MUST DO: Session + JWT expiry configuration
+  session: {
+    strategy: "jwt",
+    maxAge: THIRTY_DAYS, // Token lives 30 days max
+    updateAge: ONE_DAY, // Re-issue token once per day (rolling window)
+  },
+
+  jwt: {
+    maxAge: THIRTY_DAYS,
+  },
+
   providers: [
     Credentials({
+      credentials: {
+        email: {},
+        password: {},
+      },
       async authorize(credentials) {
         const parsedCredentials = z
-          .object({ email: z.string().email(), password: z.string().min(6) })
+          .object({
+            email: z.string().email(),
+            password: z.string().min(6).max(100), // ✅ MUST DO: cap max length
+          })
           .safeParse(credentials);
 
-        if (parsedCredentials.success) {
-          const { email, password } = parsedCredentials.data;
-          const user = await getUser(email);
-          if (!user) return null;
+        if (!parsedCredentials.success) return null;
 
-          const passwordsMatch = await bcrypt.compare(
-            password,
-            user.passwordHash,
-          );
-          if (passwordsMatch) return user;
+        const { email, password } = parsedCredentials.data;
+        const user = await getUser(email);
+
+        // ✅ MUST DO: always run bcrypt even if user not found
+        // This prevents timing attacks that reveal valid emails
+        const dummyHash =
+          "$2b$12$invalid.hash.that.will.never.match.anything.here";
+        const hashToCompare = user?.passwordHash ?? dummyHash;
+
+        const passwordsMatch = await bcrypt.compare(password, hashToCompare);
+
+        if (!user || !passwordsMatch) {
+          console.log("Invalid credentials");
+          return null;
         }
 
-        console.log("Invalid credentials");
-        return null;
+        // ✅ MUST DO: return only what you need — never return passwordHash
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
       },
     }),
   ],
+
   callbacks: {
-    async session({ session, token }) {
-      if (token.sub && session.user) {
-        session.user.id = token.sub;
+    async jwt({ token, user, trigger }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as any).role;
+        token.email = user.email;
       }
-      if (token.role && session.user) {
-        // @ts-ignore
-        session.user.role = token.role;
-      }
-      return session;
-    },
-    async jwt({ token }) {
-      if (token.sub) {
-        const user = await getUser(token.email!);
-        if (user) {
-          token.role = user.role;
+
+      if (trigger === "update" && token.email) {
+        const freshUser = await getUser(token.email as string);
+        if (freshUser) {
+          token.role = freshUser.role;
         }
       }
+
       return token;
+    },
+
+    async session({ session, token }) {
+      if (token && session.user) {
+        (session.user as any).id = token.id as string;
+        (session.user as any).role = token.role;
+      }
+      return session;
     },
   },
 });

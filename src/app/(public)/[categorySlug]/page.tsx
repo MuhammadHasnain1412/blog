@@ -14,6 +14,48 @@ import {
 } from "@mantine/core";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { postUrl } from "@/lib/urls";
+
+// ✅ Revalidate every 60 seconds — category pages don't change per-request
+export const revalidate = 60;
+
+// ── Metadata + canonical ──────────────────────────────────────────────────────
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ categorySlug: string }>;
+}): Promise<Metadata> {
+  const { categorySlug } = await params;
+
+  const category = await db.category.findUnique({
+    where: { slug: categorySlug },
+    select: { name: true },
+  });
+
+  if (!category) return { title: "Not Found" };
+
+  const baseUrl = process.env.NEXTAUTH_URL ?? "https://thedailymixa.com";
+
+  return {
+    title: category.name,
+    description: `Browse all ${category.name} stories on The Daily Mixa.`,
+    // ✅ Canonical — prevents duplicate content if category is accessed via
+    // multiple paths (e.g. with/without trailing slash)
+    alternates: {
+      canonical: `${baseUrl}/${categorySlug}`,
+    },
+    openGraph: {
+      title: `${category.name} — The Daily Mixa`,
+      description: `Browse all ${category.name} stories on The Daily Mixa.`,
+      url: `${baseUrl}/${categorySlug}`,
+      type: "website",
+    },
+  };
+}
+
+// ── Page component ────────────────────────────────────────────────────────────
 
 export default async function CategoryPage({
   params,
@@ -24,13 +66,25 @@ export default async function CategoryPage({
 
   const category = await db.category.findUnique({
     where: { slug: categorySlug },
-    include: {
+    // ✅ select instead of include — fetches only what the page renders
+    select: {
+      name: true,
       post: {
         where: { status: "PUBLISHED" },
         orderBy: { publishedAt: "desc" },
-        include: { author: true },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          excerpt: true,
+          coverImage: true,
+          publishedAt: true,
+          createdAt: true,
+          author: { select: { name: true } },
+        },
       },
-      _count: { select: { post: true } },
+      // ✅ Count only published posts — original counted all including drafts
+      _count: { select: { post: { where: { status: "PUBLISHED" } } } },
     },
   });
 
@@ -66,9 +120,10 @@ export default async function CategoryPage({
         ) : (
           <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing={40}>
             {category.post.map((post) => (
+              // ✅ postUrl() — category is no longer part of the post permalink
               <Link
                 key={post.id}
-                href={`/${categorySlug}/${post.slug}`}
+                href={postUrl(post.slug)}
                 style={{ textDecoration: "none", color: "inherit" }}
               >
                 <Card p={0} radius={0} bg="transparent" className="news-card">
@@ -98,9 +153,7 @@ export default async function CategoryPage({
                         <Text fw={700} size="xs">
                           By {post.author.name}
                         </Text>
-                        <Text size="xs" c="dimmed">
-                          •
-                        </Text>
+                        <Text size="xs" c="dimmed">•</Text>
                         <Text size="xs" c="dimmed">
                           {new Date(
                             post.publishedAt || post.createdAt,

@@ -1,7 +1,6 @@
 "use server";
 
 import { signIn } from "@/auth";
-import { AuthError } from "next-auth";
 import { db } from "@/lib/prisma";
 import { getCurrentUser, canPublish, canManageCategories } from "@/lib/rbac";
 import { revalidatePath } from "next/cache";
@@ -10,30 +9,58 @@ import { z } from "zod";
 import { post_status, user_role } from "@prisma/client";
 import { writeFile } from "fs/promises";
 import path from "path";
+import { headers } from "next/headers";
+import { loginLimiter, uploadLimiter } from "@/lib/rate-limit";
+
+// ── Shared IP helper ──────────────────────────────────────────────────────────
+
+async function getClientIp(): Promise<string> {
+  const headersList = await headers();
+  return (
+    headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    headersList.get("x-real-ip") ??
+    "unknown"
+  );
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
 
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData,
 ) {
+  // ✅ Rate limit: 5 attempts per IP per 15 minutes
+  const ip = await getClientIp();
+  const limit = loginLimiter(ip);
+  if (!limit.success) {
+    return "Too many login attempts. Please wait 15 minutes and try again.";
+  }
+
   try {
     await signIn("credentials", {
       email: formData.get("email"),
       password: formData.get("password"),
       redirectTo: "/dashboard",
     });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case "CredentialsSignin":
-          return "Invalid credentials.";
-        default:
-          console.error(error);
-          return "Something went wrong.";
-      }
+  } catch (error: any) {
+    if (
+      error?.type === "CredentialsSignin" ||
+      error?.message?.includes("CredentialsSignin")
+    ) {
+      return "Invalid credentials.";
     }
-    throw error;
+    if (error && typeof error === "object" && "digest" in error) {
+      throw error;
+    }
+    if (error?.message) {
+      console.error(error);
+      return "Something went wrong.";
+    }
+    throw error; // Re-throw — Next.js uses this to handle the redirect
   }
 }
+
+// ── Post validation schema ────────────────────────────────────────────────────
 
 const PostSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -43,12 +70,26 @@ const PostSchema = z.object({
   excerpt: z.string().optional(),
 });
 
+// ── Create post ───────────────────────────────────────────────────────────────
+
 export async function createPost(prevState: any, formData: FormData) {
   const user = await getCurrentUser();
   if (!user || !user.email) return { message: "Unauthorized" };
 
   const userId = (user as any).id;
   const userRole = (user as any).role as user_role;
+
+  // ✅ Rate limit uploads BEFORE reading binary data into memory
+  const file = formData.get("coverImage") as File;
+  if (file && file.size > 0) {
+    const ip = await getClientIp();
+    const uploadLimit = uploadLimiter(ip);
+    if (!uploadLimit.success) {
+      return {
+        message: "Too many uploads. Please wait a minute and try again.",
+      };
+    }
+  }
 
   const rawData = {
     title: formData.get("title"),
@@ -59,22 +100,18 @@ export async function createPost(prevState: any, formData: FormData) {
   };
 
   const validated = PostSchema.safeParse(rawData);
-
   if (!validated.success) {
     return { message: validated.error.issues[0].message };
   }
 
   const { title, content, categoryId, status, excerpt } = validated.data;
 
-  // Handle Cover Image Upload
-  const file = formData.get("coverImage") as File;
+  // Handle cover image upload
   let coverImage = null;
-
   if (file && file.size > 0) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const filename = `${Date.now()}-${file.name.replaceAll(" ", "_")}`;
     const uploadPath = path.join(process.cwd(), "public", "uploads", filename);
-
     try {
       await writeFile(uploadPath, buffer);
       coverImage = `/uploads/${filename}`;
@@ -83,7 +120,7 @@ export async function createPost(prevState: any, formData: FormData) {
     }
   }
 
-  // Basic Slug generation
+  // Slug generation
   const slug = title
     .toLowerCase()
     .trim()
@@ -93,7 +130,7 @@ export async function createPost(prevState: any, formData: FormData) {
 
   const uniqueSlug = `${slug}-${Date.now()}`;
 
-  // RBAC Check
+  // RBAC check
   if (status === post_status.PUBLISHED && !canPublish(userRole)) {
     return {
       message:
@@ -101,8 +138,9 @@ export async function createPost(prevState: any, formData: FormData) {
     };
   }
 
+  let createdSlug: string;
   try {
-    await db.post.create({
+    const created = await db.post.create({
       data: {
         title,
         slug: uniqueSlug,
@@ -112,10 +150,12 @@ export async function createPost(prevState: any, formData: FormData) {
         categoryId,
         status,
         authorId: userId,
-        lastUpdatedById: userId, // Initially updated by author
+        lastUpdatedById: userId,
         publishedAt: status === post_status.PUBLISHED ? new Date() : null,
       },
+      select: { slug: true }, // ✅ Only fetch what we need for revalidation
     });
+    createdSlug = created.slug;
   } catch (e) {
     console.error(e);
     return { message: "Database error: Failed to create post." };
@@ -123,8 +163,11 @@ export async function createPost(prevState: any, formData: FormData) {
 
   revalidatePath("/dashboard/posts");
   revalidatePath("/");
+  revalidatePath(`/posts/${createdSlug}`); // ✅ Revalidate new canonical URL
   redirect("/dashboard/posts");
 }
+
+// ── Update post ───────────────────────────────────────────────────────────────
 
 export async function updatePost(
   postId: string,
@@ -137,19 +180,37 @@ export async function updatePost(
   const userId = (user as any).id;
   const userRole = (user as any).role as user_role;
 
-  // 1. Check if post exists & if user has permission to edit
-  const existingPost = await db.post.findUnique({ where: { id: postId } });
+  // ✅ Select only the columns we actually use — not SELECT *
+  const existingPost = await db.post.findUnique({
+    where: { id: postId },
+    select: {
+      authorId: true,
+      coverImage: true,
+      publishedAt: true,
+      slug: true,
+    },
+  });
   if (!existingPost) return { message: "Post not found" };
 
   const isAuthor = existingPost.authorId === userId;
   const isPrivileged =
     userRole === user_role.ADMIN || userRole === user_role.EDITOR;
-
   if (!isAuthor && !isPrivileged) {
     return { message: "Access denied" };
   }
 
-  // 2. Validate data
+  // ✅ Rate limit uploads BEFORE reading binary data into memory
+  const file = formData.get("coverImage") as File;
+  if (file && file.size > 0) {
+    const ip = await getClientIp();
+    const uploadLimit = uploadLimiter(ip);
+    if (!uploadLimit.success) {
+      return {
+        message: "Too many uploads. Please wait a minute and try again.",
+      };
+    }
+  }
+
   const rawData = {
     title: formData.get("title"),
     content: formData.get("content"),
@@ -165,10 +226,8 @@ export async function updatePost(
 
   const { title, content, categoryId, status, excerpt } = validated.data;
 
-  // 3. Handle Cover Image (optional update)
-  const file = formData.get("coverImage") as File;
+  // Handle cover image update (optional — keeps existing if no new file)
   let coverImage = existingPost.coverImage;
-
   if (file && file.size > 0) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const filename = `${Date.now()}-${file.name.replaceAll(" ", "_")}`;
@@ -177,7 +236,6 @@ export async function updatePost(
     coverImage = `/uploads/${filename}`;
   }
 
-  // 4. Update Database
   try {
     await db.post.update({
       where: { id: postId },
@@ -188,7 +246,7 @@ export async function updatePost(
         coverImage,
         categoryId,
         status,
-        lastUpdatedById: userId, // Track WHO edited this
+        lastUpdatedById: userId,
         publishedAt:
           status === post_status.PUBLISHED && !existingPost.publishedAt
             ? new Date()
@@ -202,8 +260,11 @@ export async function updatePost(
 
   revalidatePath("/dashboard/posts");
   revalidatePath("/");
+  revalidatePath(`/posts/${existingPost.slug}`); // ✅ Revalidate canonical URL
   redirect("/dashboard/posts");
 }
+
+// ── Category actions ──────────────────────────────────────────────────────────
 
 const CategorySchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -214,7 +275,6 @@ export async function createCategory(prevState: any, formData: FormData) {
   if (!user || !user.email) return { message: "Unauthorized" };
 
   const role = (user as any).role as user_role;
-
   if (!canManageCategories(role)) {
     return {
       message:
@@ -224,7 +284,6 @@ export async function createCategory(prevState: any, formData: FormData) {
 
   const name = formData.get("name") as string;
   const validated = CategorySchema.safeParse({ name });
-
   if (!validated.success) {
     return { message: validated.error.issues[0].message };
   }
@@ -238,10 +297,7 @@ export async function createCategory(prevState: any, formData: FormData) {
 
   try {
     await db.category.create({
-      data: {
-        name,
-        slug: uniqueSlug,
-      },
+      data: { name, slug: uniqueSlug },
     });
   } catch (e) {
     console.error(e);
@@ -252,23 +308,20 @@ export async function createCategory(prevState: any, formData: FormData) {
   redirect("/dashboard/categories");
 }
 
+// ── Delete actions ────────────────────────────────────────────────────────────
+
 export async function deleteUser(userId: string) {
   const currentUser = await getCurrentUser();
   if (!currentUser || (currentUser as any).role !== user_role.ADMIN) {
     return { message: "Unauthorized" };
   }
 
-  // Prevent self-deletion
   if ((currentUser as any).id === userId) {
     return { message: "You cannot delete your own account." };
   }
 
   try {
-    // Note: We might need to handle cascading deletes or nullify relations
-    // depending on database constraints, but for now we'll attempt deletion.
-    await db.user.delete({
-      where: { id: userId },
-    });
+    await db.user.delete({ where: { id: userId } });
   } catch (e) {
     console.error(e);
     return { message: "Failed to delete user. They may have active posts." };
@@ -286,9 +339,17 @@ export async function deletePost(postId: string) {
   }
 
   try {
-    await db.post.delete({
+    // ✅ Fetch slug before deletion so we can revalidate the URL
+    const post = await db.post.findUnique({
       where: { id: postId },
+      select: { slug: true },
     });
+
+    await db.post.delete({ where: { id: postId } });
+
+    if (post) {
+      revalidatePath(`/posts/${post.slug}`);
+    }
   } catch (e) {
     console.error(e);
     return { message: "Failed to delete post." };
@@ -306,11 +367,7 @@ export async function deleteCategory(categoryId: string) {
   }
 
   try {
-    // Check if category has posts
-    const postCount = await db.post.count({
-      where: { categoryId },
-    });
-
+    const postCount = await db.post.count({ where: { categoryId } });
     if (postCount > 0) {
       return {
         message:
@@ -318,9 +375,7 @@ export async function deleteCategory(categoryId: string) {
       };
     }
 
-    await db.category.delete({
-      where: { id: categoryId },
-    });
+    await db.category.delete({ where: { id: categoryId } });
   } catch (e) {
     console.error(e);
     return { message: "Failed to delete category." };
