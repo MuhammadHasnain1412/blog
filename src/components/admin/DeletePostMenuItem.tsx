@@ -30,9 +30,12 @@ export default function DeletePostMenuItem({
       confirmProps: { color: "red" },
       onConfirm: () => {
         startTransition(async () => {
-          const result = await deletePost(postId);
+          const result = await deletePost(null, { id: postId });
 
-          if (result?.message === "Post deleted successfully") {
+          if (
+            result?.data?.message === "Post deleted successfully" ||
+            (result.success && result.message === undefined)
+          ) {
             notifications.show({
               title: "Post Deleted",
               message: `"${postTitle}" has been removed.`,

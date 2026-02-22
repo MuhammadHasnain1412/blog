@@ -9,17 +9,20 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { post_status, user_role } from "@prisma/client";
-import { writeFile } from "fs/promises";
-import path from "path";
 import { headers } from "next/headers";
+import { put } from "@vercel/blob";
 import { loginLimiter, uploadLimiter } from "@/lib/rate-limit";
 import DOMPurify from "isomorphic-dompurify";
+import { createSafeAction } from "@/lib/safe-action";
 
 // ── Shared IP helper ──────────────────────────────────────────────────────────
 
 async function getClientIp(): Promise<string> {
   const headersList = await headers();
+  // ✅ Prioritize provider-authenticated headers that cannot be spoofed by the client
   return (
+    headersList.get("x-vercel-forwarded-for") ??
+    headersList.get("cf-connecting-ip") ??
     headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     headersList.get("x-real-ip") ??
     "unknown"
@@ -73,234 +76,217 @@ const PostSchema = z.object({
   excerpt: z.string().optional(),
 });
 
-// ── Create post ───────────────────────────────────────────────────────────────
+export const createPost = createSafeAction(
+  PostSchema,
+  async (validatedData, userId, formData: any) => {
+    let coverImage = null;
+    const file = formData.get("coverImage") as File;
+    if (file && file.size > 0) {
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(
+          "File payload is too large. Maximum upload size allowed is 5MB.",
+        );
+      }
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error(
+          "Invalid file type. Only JPG, PNG, WEBP, and GIF are allowed.",
+        );
+      }
 
-export async function createPost(prevState: any, formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || !user.email) return { message: "Unauthorized" };
-
-  const userId = (user as any).id;
-  const userRole = (user as any).role as user_role;
-
-  // Handle cover image upload
-  let coverImage = null;
-
-  // ✅ Rate limit uploads BEFORE reading binary data into memory
-  const file = formData.get("coverImage") as File;
-  if (file && file.size > 0) {
-    // 1. Enforce strict MIME Types
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      return {
-        message: "Invalid file type. Only JPG, PNG, WEBP, and GIF are allowed.",
-      };
+      try {
+        const uniqueName =
+          crypto.randomUUID() + extname(file.name).toLowerCase();
+        const blob = await put(`uploads/${uniqueName}`, file, {
+          access: "public",
+        });
+        coverImage = blob.url;
+      } catch (err) {
+        throw new Error("Cloud Storage connection failed.");
+      }
     }
-    // 2. Eradicate Path Traversal by generating our own cryptographically secure name
-    // Do NOT trust file.name under any circumstance.
-    const extension = extname(file.name).toLowerCase();
-    const safeFilename = `${crypto.randomUUID()}${extension}`;
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const uploadPath = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      safeFilename,
-    );
-    try {
-      await writeFile(uploadPath, buffer);
-      coverImage = `/uploads/${safeFilename}`;
-    } catch (err) {
-      console.error("Error saving file:", err);
-    }
-  }
+    const { title, content, categoryId, status, excerpt } = validatedData;
+    const userRole = (await db.user.findUnique({ where: { id: userId } }))
+      ?.role as user_role;
 
-  const rawData = {
-    title: formData.get("title"),
-    content: formData.get("content"),
-    categoryId: formData.get("categoryId"),
-    status: formData.get("status"),
-    excerpt: formData.get("excerpt"),
-  };
-
-  const validated = PostSchema.safeParse(rawData);
-  if (!validated.success) {
-    return { message: validated.error.issues[0].message };
-  }
-
-  const { title, content, categoryId, status, excerpt } = validated.data;
-
-  const cleanContent = DOMPurify.sanitize(content, {
-    USE_PROFILES: { html: true },
-    FORBID_TAGS: ["style", "script", "iframe", "form", "object"],
-    FORBID_ATTR: ["onerror", "onload", "onmouseover"],
-  });
-
-  // Slug generation
-  const slug = title
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  const uniqueSlug = `${slug}-${Date.now()}`;
-
-  // RBAC check
-  if (status === post_status.PUBLISHED && !canPublish(userRole)) {
-    return {
-      message:
-        "You do not have permission to publish posts directly. Save as DRAFT.",
-    };
-  }
-
-  let createdSlug: string;
-  try {
-    const created = await db.post.create({
-      data: {
-        title,
-        slug: uniqueSlug,
-        content: cleanContent,
-        excerpt,
-        coverImage,
-        categoryId,
-        status,
-        authorId: userId,
-        lastUpdatedById: userId,
-        publishedAt: status === post_status.PUBLISHED ? new Date() : null,
-      },
-      select: { slug: true }, // ✅ Only fetch what we need for revalidation
+    const cleanContent = DOMPurify.sanitize(content, {
+      USE_PROFILES: { html: true },
+      FORBID_TAGS: ["style", "script", "iframe", "form", "object"],
+      FORBID_ATTR: ["onerror", "onload", "onmouseover"],
     });
-    createdSlug = created.slug;
-  } catch (e) {
-    console.error(e);
-    return { message: "Database error: Failed to create post." };
-  }
 
-  revalidatePath("/dashboard/posts");
-  revalidatePath("/");
-  revalidatePath(`/posts/${createdSlug}`); // ✅ Revalidate new canonical URL
-  redirect("/dashboard/posts");
-}
+    const slug = title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/[\s_-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    const uniqueSlug = `${slug}-${Date.now()}`;
+
+    // RBAC check
+    if (status === post_status.PUBLISHED && !canPublish(userRole)) {
+      throw new Error(
+        "You do not have permission to publish posts directly. Save as DRAFT.",
+      );
+    }
+
+    let createdSlug: string;
+    try {
+      const created = await db.post.create({
+        data: {
+          title,
+          slug: uniqueSlug,
+          content: cleanContent,
+          excerpt,
+          coverImage,
+          categoryId,
+          status,
+          authorId: userId,
+          lastUpdatedById: userId,
+          publishedAt: status === post_status.PUBLISHED ? new Date() : null,
+        },
+        select: { slug: true },
+      });
+      createdSlug = created.slug;
+    } catch (e) {
+      console.error(e);
+      throw new Error("Database error: Failed to create post.");
+    }
+
+    revalidatePath("/dashboard/posts");
+    revalidatePath("/");
+    revalidatePath(`/posts/${createdSlug}`);
+    redirect("/dashboard/posts");
+  },
+);
 
 // ── Update post ───────────────────────────────────────────────────────────────
 
-export async function updatePost(
-  postId: string,
-  prevState: any,
-  formData: FormData,
-) {
-  const user = await getCurrentUser();
-  if (!user || !user.email) return { message: "Unauthorized" };
+const UpdatePostSchema = PostSchema.extend({
+  postId: z.string().min(1, "Post ID is required"),
+});
 
-  const userId = (user as any).id;
-  const userRole = (user as any).role as user_role;
+export const updatePost = createSafeAction(
+  UpdatePostSchema,
+  async (validatedData, userId, formData: any) => {
+    const { title, content, categoryId, status, excerpt, postId } =
+      validatedData;
 
-  // ✅ Select only the columns we actually use — not SELECT *
-  const existingPost = await db.post.findUnique({
-    where: { id: postId },
-    select: {
-      authorId: true,
-      coverImage: true,
-      publishedAt: true,
-      slug: true,
-    },
-  });
-  if (!existingPost) return { message: "Post not found" };
-
-  const isAuthor = existingPost.authorId === userId;
-  const isPrivileged =
-    userRole === user_role.ADMIN || userRole === user_role.EDITOR;
-  if (!isAuthor && !isPrivileged) {
-    return { message: "Access denied" };
-  }
-
-  // ✅ Rate limit uploads BEFORE reading binary data into memory
-  const file = formData.get("coverImage") as File;
-  if (file && file.size > 0) {
-    const ip = await getClientIp();
-    const uploadLimit = uploadLimiter(ip);
-    if (!uploadLimit.success) {
-      return {
-        message: "Too many uploads. Please wait a minute and try again.",
-      };
-    }
-    // 1. Enforce strict MIME Types
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      return {
-        message: "Invalid file type. Only JPG, PNG, WEBP, and GIF are allowed.",
-      };
-    }
-  }
-
-  const rawData = {
-    title: formData.get("title"),
-    content: formData.get("content"),
-    categoryId: formData.get("categoryId"),
-    status: formData.get("status"),
-    excerpt: formData.get("excerpt"),
-  };
-
-  const validated = PostSchema.safeParse(rawData);
-  if (!validated.success) {
-    return { message: validated.error.issues[0].message };
-  }
-
-  const { title, content, categoryId, status, excerpt } = validated.data;
-
-  const cleanContent = DOMPurify.sanitize(content, {
-    USE_PROFILES: { html: true },
-    FORBID_TAGS: ["style", "script", "iframe", "form", "object"],
-    FORBID_ATTR: ["onerror", "onload", "onmouseover"],
-  });
-
-  // Handle cover image update (optional — keeps existing if no new file)
-  let coverImage = existingPost.coverImage;
-  if (file && file.size > 0) {
-    // 2. Eradicate Path Traversal by generating our own cryptographically secure name
-    // Do NOT trust file.name under any circumstance.
-    const extension = extname(file.name).toLowerCase();
-    const safeFilename = `${crypto.randomUUID()}${extension}`;
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const uploadPath = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      safeFilename,
-    );
-    await writeFile(uploadPath, buffer);
-    coverImage = `/uploads/${safeFilename}`;
-  }
-
-  try {
-    await db.post.update({
+    // DB check
+    const existingPost = await db.post.findUnique({
       where: { id: postId },
-      data: {
-        title,
-        content: cleanContent,
-        excerpt,
-        coverImage,
-        categoryId,
-        status,
-        lastUpdatedById: userId,
-        publishedAt:
-          status === post_status.PUBLISHED && !existingPost.publishedAt
-            ? new Date()
-            : existingPost.publishedAt,
+      select: {
+        authorId: true,
+        coverImage: true,
+        publishedAt: true,
+        slug: true,
       },
     });
-  } catch (e) {
-    console.error(e);
-    return { message: "Database error: Failed to update post." };
-  }
+    if (!existingPost) throw new Error("Post not found");
 
-  revalidatePath("/dashboard/posts");
-  revalidatePath("/");
-  revalidatePath(`/posts/${existingPost.slug}`); // ✅ Revalidate canonical URL
-  redirect("/dashboard/posts");
-}
+    const userRecord = await db.user.findUnique({ where: { id: userId } });
+    const userRole = userRecord?.role as user_role;
+
+    const isAuthor = existingPost.authorId === userId;
+    const isPrivileged =
+      userRole === user_role.ADMIN || userRole === user_role.EDITOR;
+
+    if (!isAuthor && !isPrivileged) {
+      throw new Error("Access denied");
+    }
+
+    // RBAC check
+    if (status === post_status.PUBLISHED && !canPublish(userRole)) {
+      throw new Error(
+        "You do not have permission to publish posts directly. Save as DRAFT.",
+      );
+    }
+
+    // Handle file upload
+    let coverImage = existingPost.coverImage;
+    const file = formData.get("coverImage") as File;
+    if (file && file.size > 0) {
+      const MAX_FILE_SIZE = 5 * 1024 * 1024;
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(
+          "File payload is too large. Maximum upload size allowed is 5MB.",
+        );
+      }
+
+      const ip = await getClientIp();
+      const uploadLimit = uploadLimiter(ip);
+      if (!uploadLimit.success) {
+        throw new Error(
+          "Too many uploads. Please wait a minute and try again.",
+        );
+      }
+
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error(
+          "Invalid file type. Only JPG, PNG, WEBP, and GIF are allowed.",
+        );
+      }
+
+      try {
+        const uniqueName =
+          crypto.randomUUID() + extname(file.name).toLowerCase();
+        const blob = await put(`uploads/${uniqueName}`, file, {
+          access: "public",
+        });
+        coverImage = blob.url;
+      } catch (err) {
+        throw new Error("Cloud Storage connection failed.");
+      }
+    }
+
+    const cleanContent = DOMPurify.sanitize(content, {
+      USE_PROFILES: { html: true },
+      FORBID_TAGS: ["style", "script", "iframe", "form", "object"],
+      FORBID_ATTR: ["onerror", "onload", "onmouseover"],
+    });
+
+    try {
+      await db.post.update({
+        where: { id: postId },
+        data: {
+          title,
+          content: cleanContent,
+          excerpt,
+          coverImage,
+          categoryId,
+          status,
+          lastUpdatedById: userId,
+          publishedAt:
+            status === post_status.PUBLISHED && !existingPost.publishedAt
+              ? new Date()
+              : existingPost.publishedAt,
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      throw new Error("Database error: Failed to update post.");
+    }
+
+    revalidatePath("/dashboard/posts");
+    revalidatePath("/");
+    revalidatePath(`/posts/${existingPost.slug}`);
+    redirect("/dashboard/posts");
+  },
+);
 
 // ── Category actions ──────────────────────────────────────────────────────────
 
@@ -308,134 +294,139 @@ const CategorySchema = z.object({
   name: z.string().min(1, "Name is required"),
 });
 
-export async function createCategory(prevState: any, formData: FormData) {
-  const user = await getCurrentUser();
-  if (!user || !user.email) return { message: "Unauthorized" };
+export const createCategory = createSafeAction(
+  CategorySchema,
+  async (validatedData, userId) => {
+    const user = await getCurrentUser();
+    const role = (user as any).role as user_role;
 
-  const role = (user as any).role as user_role;
-  if (!canManageCategories(role)) {
-    return {
-      message:
+    if (!canManageCategories(role)) {
+      throw new Error(
         "Insufficient permissions. Only Admins and Editors can manage categories.",
-    };
-  }
-
-  const name = formData.get("name") as string;
-  const validated = CategorySchema.safeParse({ name });
-  if (!validated.success) {
-    return { message: validated.error.issues[0].message };
-  }
-
-  let uniqueSlug = name
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-");
-
-  let slugExists = true;
-  let counter = 1;
-  while (slugExists) {
-    const existing = await db.category.findUnique({
-      where: { slug: uniqueSlug },
-    });
-    if (existing) {
-      uniqueSlug = `${name
-        .toLowerCase()
-        .trim()
-        .replace(/[^\w\s-]/g, "")
-        .replace(/[\s_-]+/g, "-")}-${counter}`;
-      counter++;
-    } else {
-      slugExists = false;
+      );
     }
-  }
 
-  try {
-    await db.category.create({
-      data: { name, slug: uniqueSlug },
-    });
-  } catch (e) {
-    console.error(e);
-    return { message: "Failed to create category" };
-  }
+    const { name } = validatedData;
+    let uniqueSlug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/[\s_-]+/g, "-");
 
-  revalidatePath("/dashboard/categories");
-  redirect("/dashboard/categories");
-}
+    let slugExists = true;
+    let counter = 1;
+    while (slugExists) {
+      const existing = await db.category.findUnique({
+        where: { slug: uniqueSlug },
+      });
+      if (existing) {
+        uniqueSlug = `${name
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/[\s_-]+/g, "-")}-${counter}`;
+        counter++;
+      } else {
+        slugExists = false;
+      }
+    }
+
+    try {
+      await db.category.create({
+        data: { name, slug: uniqueSlug },
+      });
+    } catch (e) {
+      console.error(e);
+      throw new Error("Failed to create category");
+    }
+
+    revalidatePath("/dashboard/categories");
+    redirect("/dashboard/categories");
+  },
+);
 
 // ── Delete actions ────────────────────────────────────────────────────────────
 
-export async function deleteUser(userId: string) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser || (currentUser as any).role !== user_role.ADMIN) {
-    return { message: "Unauthorized" };
-  }
-
-  if ((currentUser as any).id === userId) {
-    return { message: "You cannot delete your own account." };
-  }
-
-  try {
-    await db.user.delete({ where: { id: userId } });
-  } catch (e) {
-    console.error(e);
-    return { message: "Failed to delete user. They may have active posts." };
-  }
-
-  revalidatePath("/dashboard/users");
-  revalidatePath("/dashboard");
-  return { message: "User deleted successfully" };
-}
-
-export async function deletePost(postId: string) {
-  const user = await getCurrentUser();
-  if (!user || (user as any).role !== user_role.ADMIN) {
-    return { message: "Unauthorized" };
-  }
-
-  try {
-    // ✅ Fetch slug before deletion so we can revalidate the URL
-    const post = await db.post.findUnique({
-      where: { id: postId },
-      select: { slug: true },
-    });
-
-    await db.post.delete({ where: { id: postId } });
-
-    if (post) {
-      revalidatePath(`/posts/${post.slug}`);
-    }
-  } catch (e) {
-    console.error(e);
-    return { message: "Failed to delete post." };
-  }
-
-  revalidatePath("/dashboard/posts");
-  revalidatePath("/");
-  return { message: "Post deleted successfully" };
-}
-
-export async function deleteCategory(categoryId: string) {
-  const user = await getCurrentUser();
-  if (!user || (user as any).role !== user_role.ADMIN) {
-    return { message: "Unauthorized" };
-  }
-
-  try {
-    const postCount = await db.post.count({ where: { categoryId } });
-    if (postCount > 0) {
-      return {
-        message:
-          "Cannot delete category with associated posts. Move or delete the posts first.",
-      };
+export const deleteUser = createSafeAction(
+  z.object({ id: z.string() }),
+  async ({ id: targetUserId }, userId) => {
+    const currentUser = await db.user.findUnique({ where: { id: userId } });
+    if (!currentUser || currentUser.role !== user_role.ADMIN) {
+      return { message: "Unauthorized" };
     }
 
-    await db.category.delete({ where: { id: categoryId } });
-  } catch (e) {
-    console.error(e);
-    return { message: "Failed to delete category." };
-  }
+    if (currentUser.id === targetUserId) {
+      return { message: "You cannot delete your own account." };
+    }
 
-  revalidatePath("/dashboard/categories");
-  return { message: "Category deleted successfully" };
-}
+    try {
+      await db.user.delete({ where: { id: targetUserId } });
+    } catch (e) {
+      console.error(e);
+      return { message: "Failed to delete user. They may have active posts." };
+    }
+
+    revalidatePath("/dashboard/users");
+    revalidatePath("/dashboard");
+    return { message: "User deleted successfully" };
+  },
+);
+
+export const deletePost = createSafeAction(
+  z.object({ id: z.string() }),
+  async ({ id: postId }, userId) => {
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user || user.role !== user_role.ADMIN) {
+      return { message: "Unauthorized" };
+    }
+
+    try {
+      // ✅ Fetch slug before deletion so we can revalidate the URL
+      const post = await db.post.findUnique({
+        where: { id: postId },
+        select: { slug: true },
+      });
+
+      await db.post.delete({ where: { id: postId } });
+
+      if (post) {
+        revalidatePath(`/posts/${post.slug}`);
+      }
+    } catch (e) {
+      console.error(e);
+      return { message: "Failed to delete post." };
+    }
+
+    revalidatePath("/dashboard/posts");
+    revalidatePath("/");
+    return { message: "Post deleted successfully" };
+  },
+);
+
+export const deleteCategory = createSafeAction(
+  z.object({ id: z.string() }),
+  async ({ id: categoryId }, userId) => {
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user || user.role !== user_role.ADMIN) {
+      return { message: "Unauthorized" };
+    }
+
+    try {
+      const postCount = await db.post.count({ where: { categoryId } });
+      if (postCount > 0) {
+        return {
+          message:
+            "Cannot delete category with associated posts. Move or delete the posts first.",
+        };
+      }
+
+      await db.category.delete({ where: { id: categoryId } });
+    } catch (e) {
+      console.error(e);
+      return { message: "Failed to delete category." };
+    }
+
+    revalidatePath("/dashboard/categories");
+    return { message: "Category deleted successfully" };
+  },
+);

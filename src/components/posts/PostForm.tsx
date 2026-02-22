@@ -30,7 +30,7 @@ export default function PostForm({
   initialData?: any;
 }) {
   const isEditing = !!initialData;
-  const action = isEditing ? updatePost.bind(null, initialData.id) : createPost;
+  const action = isEditing ? updatePost : createPost;
 
   const [state, dispatch] = useActionState(action, null);
   const [content, setContent] = useState(initialData?.content || "");
@@ -102,6 +102,9 @@ export default function PostForm({
           >
             <TipTapEditor value={content} onChange={setContent} />
             <input type="hidden" name="content" value={content} />
+            {isEditing && (
+              <input type="hidden" name="postId" value={initialData.id} />
+            )}
           </Input.Wrapper>
 
           <Group justify="flex-end" mt="md">

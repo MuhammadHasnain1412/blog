@@ -17,11 +17,16 @@ export default async function UsersPage() {
     redirect("/dashboard");
   }
 
+  // ✅ Explicit select — passwordHash is never pulled into server memory
   const users = await db.user.findMany({
-    include: {
-      posts: {
-        select: { id: true },
-      },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      avatarUrl: true,
+      createdAt: true,
+      posts: { select: { id: true } },
     },
     orderBy: { createdAt: "desc" },
   });

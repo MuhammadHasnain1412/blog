@@ -69,8 +69,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
         const passwordsMatch = await bcrypt.compare(password, hashToCompare);
 
+        // ✅ Silent rejection — no log spam from credential stuffing bots
         if (!user || !passwordsMatch) {
-          console.log("Invalid credentials");
           return null;
         }
 

@@ -30,9 +30,12 @@ export default function DeleteUserButton({
       confirmProps: { color: "red" },
       onConfirm: () => {
         startTransition(async () => {
-          const result = await deleteUser(userId);
+          const result = await deleteUser(null, { id: userId });
 
-          if (result?.message === "User deleted successfully") {
+          if (
+            result?.data?.message === "User deleted successfully" ||
+            (result.success && result.message === undefined)
+          ) {
             notifications.show({
               title: "User Removed",
               message: `Successfully deleted user ${userName}`,

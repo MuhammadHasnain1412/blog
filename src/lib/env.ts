@@ -12,6 +12,7 @@ const REQUIRED_ENV_VARS = [
   "DATABASE_URL",
   "AUTH_SECRET",
   "NEXTAUTH_URL",
+  "BLOB_READ_WRITE_TOKEN", // ✅ Required since @vercel/blob image upload migration
 ] as const;
 
 export function validateEnv() {

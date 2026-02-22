@@ -3,7 +3,11 @@ import { getCurrentUser } from "@/lib/rbac";
 
 export function createSafeAction<TInput, TOutput>(
   schema: z.ZodSchema<TInput>,
-  handler: (validatedData: TInput, userId: string) => Promise<TOutput>,
+  handler: (
+    validatedData: TInput,
+    userId: string,
+    originalInput: any,
+  ) => Promise<TOutput>,
 ) {
   return async (
     prevState: any,
@@ -33,7 +37,7 @@ export function createSafeAction<TInput, TOutput>(
       const validatedData = schema.parse(dataToValidate);
 
       // 3. Execute logic securely
-      const result = await handler(validatedData, userId);
+      const result = await handler(validatedData, userId, formData);
 
       return { success: true, data: result };
     } catch (e: unknown) {
@@ -43,6 +47,12 @@ export function createSafeAction<TInput, TOutput>(
           success: false,
         };
       }
+
+      // Re-throw Next.js redirect/notFound errors
+      if (e && typeof e === "object" && "digest" in e) {
+        throw e;
+      }
+
       console.error(e);
       return { message: "An unexpected error occurred.", success: false };
     }

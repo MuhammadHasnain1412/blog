@@ -30,9 +30,12 @@ export default function DeleteCategoryMenuItem({
       confirmProps: { color: "red" },
       onConfirm: () => {
         startTransition(async () => {
-          const result = await deleteCategory(categoryId);
+          const result = await deleteCategory(null, { id: categoryId });
 
-          if (result?.message === "Category deleted successfully") {
+          if (
+            result?.data?.message === "Category deleted successfully" ||
+            (result.success && result.message === undefined)
+          ) {
             notifications.show({
               title: "Category Deleted",
               message: `"${categoryName}" has been removed.`,
