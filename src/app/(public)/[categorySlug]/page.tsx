@@ -1,4 +1,3 @@
-import { db } from "@/lib/prisma";
 import {
   Title,
   SimpleGrid,
@@ -16,6 +15,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { postUrl } from "@/lib/urls";
+import { db } from "@/lib/prisma";
 
 // ✅ Revalidate every 60 seconds — category pages don't change per-request
 export const revalidate = 60;

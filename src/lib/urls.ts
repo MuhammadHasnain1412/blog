@@ -12,11 +12,6 @@ export function postUrl(slug: string): string {
   return `/posts/${slug}`;
 }
 
-/** /world-news */
-export function categoryUrl(slug: string): string {
-  return `/${slug}`;
-}
-
 /** https://thedailymixa.com/posts/my-post-slug */
 export function absolutePostUrl(slug: string): string {
   return `${BASE_URL}/posts/${slug}`;

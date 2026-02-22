@@ -1,5 +1,7 @@
 // src/auth.config.ts
 
+import type { NextAuthConfig } from "next-auth";
+
 const isProduction = process.env.NODE_ENV === "production";
 
 export const authConfig = {
@@ -18,7 +20,7 @@ export const authConfig = {
         : "authjs.session-token",
       options: {
         httpOnly: true, // JS cannot read this cookie
-        sameSite: "lax", // Protects against CSRF on navigation
+        sameSite: "strict" as const, // Protects against CSRF on navigation
         path: "/",
         secure: isProduction, // HTTPS only in production
       },
@@ -29,7 +31,7 @@ export const authConfig = {
         : "authjs.callback-url",
       options: {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: "lax" as const,
         path: "/",
         secure: isProduction,
       },
@@ -40,7 +42,7 @@ export const authConfig = {
         : "authjs.csrf-token",
       options: {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: "lax" as const,
         path: "/",
         secure: isProduction,
       },
@@ -70,4 +72,4 @@ export const authConfig = {
   },
 
   providers: [],
-};
+} satisfies NextAuthConfig;

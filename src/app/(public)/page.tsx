@@ -17,7 +17,8 @@ import {
 } from "@mantine/core";
 import Link from "next/link";
 // Refreshing TS module resolution
-import { postUrl, categoryUrl } from "@/lib/urls";
+import { postUrl } from "@/lib/urls";
+import CategoryFilterBar from "@/components/category-filter-bar";
 
 // ✅ Revalidate every 60 seconds instead of force-dynamic
 // The home page doesn't need a fresh DB query on every single request —
@@ -103,6 +104,10 @@ async function PostSections() {
 
   const heroPost = posts[0];
   const categoriesWithPosts = Object.values(categoryMap);
+  const categoryFilterData = categoriesWithPosts.map((cat) => ({
+    name: cat.name,
+    slug: cat.slug,
+  }));
 
   if (posts.length === 0) {
     return (
@@ -120,10 +125,16 @@ async function PostSections() {
 
   return (
     <Stack gap={60}>
+      <CategoryFilterBar categories={categoryFilterData} />
+
       {/* Dynamic Category Sections */}
-      {categoriesWithPosts.slice(0, 2).map((cat) => (
-        <section key={cat.slug}>
-          <SectionHeader title={cat.name} slug={cat.slug} />
+      {categoriesWithPosts.map((cat) => (
+        <section
+          key={cat.slug}
+          data-category-section={cat.slug}
+          style={{ scrollMarginTop: "80px" }}
+        >
+          <SectionHeader title={cat.name} />
           <SimpleGrid
             cols={{ base: 1, sm: 2, md: cat.posts.length > 3 ? 4 : 3 }}
             spacing="xl"
@@ -143,7 +154,7 @@ async function PostSections() {
       {heroPost && (
         <section>
           {/* ✅ Featured section header links to category, not post */}
-          <SectionHeader title="FEATURED STORY" slug={heroPost.category.slug} />
+          <SectionHeader title="FEATURED STORY" />
           <Flex direction={{ base: "column", md: "row" }} gap="xl">
             <Box style={{ flex: 7 }}>
               {/* ✅ Uses postUrl() — no category in URL */}
@@ -293,24 +304,19 @@ async function PostSections() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function SectionHeader({ title, slug }: { title: string; slug?: string }) {
+function SectionHeader({ title }: { title: string }) {
   return (
     <Stack gap={10} mb={40} align="center">
-      <Link
-        href={slug ? categoryUrl(slug) : "#"}
-        style={{ textDecoration: "none", color: "inherit" }}
+      <Title
+        order={2}
+        style={{
+          letterSpacing: "4px",
+          fontSize: "1.8rem",
+          textTransform: "uppercase",
+        }}
       >
-        <Title
-          order={2}
-          style={{
-            letterSpacing: "4px",
-            fontSize: "1.8rem",
-            textTransform: "uppercase",
-          }}
-        >
-          {title}
-        </Title>
-      </Link>
+        {title}
+      </Title>
       <Divider w={60} color="dark" size="lg" />
     </Stack>
   );

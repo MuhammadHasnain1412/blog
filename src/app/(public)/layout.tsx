@@ -2,24 +2,18 @@ import {
   Container,
   Group,
   Title,
-  Button,
   Box,
   Text,
   Stack,
   Divider,
-  UnstyledButton,
 } from "@mantine/core";
 import Link from "next/link";
-import { db } from "@/lib/prisma";
 
-export default async function PublicLayout({
+export default function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const categories = await db.category.findMany({
-    orderBy: { name: "asc" },
-  });
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -100,22 +94,6 @@ export default async function PublicLayout({
                   HOME
                 </Text>
               </Link>
-              {categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/${cat.slug}`}
-                  style={{ textDecoration: "none", color: "inherit" }}
-                >
-                  <Text
-                    fw={700}
-                    size="sm"
-                    tt="uppercase"
-                    style={{ whiteSpace: "nowrap" }}
-                  >
-                    {cat.name}
-                  </Text>
-                </Link>
-              ))}
             </Group>
           </Box>
         </Container>

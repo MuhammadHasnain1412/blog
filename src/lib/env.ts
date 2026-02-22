@@ -22,7 +22,7 @@ export function validateEnv() {
       `\n\n❌ Missing required environment variables:\n` +
         missing.map((k) => `   - ${k}`).join("\n") +
         `\n\nThe application cannot start without these variables.\n` +
-        `Check your .env file or server environment config.\n`
+        `Check your .env file or server environment config.\n`,
     );
   }
 }

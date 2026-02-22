@@ -1,6 +1,8 @@
 "use server";
 
 import { signIn } from "@/auth";
+import { extname } from "path";
+import crypto from "crypto";
 import { db } from "@/lib/prisma";
 import { getCurrentUser, canPublish, canManageCategories } from "@/lib/rbac";
 import { revalidatePath } from "next/cache";
@@ -11,6 +13,7 @@ import { writeFile } from "fs/promises";
 import path from "path";
 import { headers } from "next/headers";
 import { loginLimiter, uploadLimiter } from "@/lib/rate-limit";
+import DOMPurify from "isomorphic-dompurify";
 
 // ── Shared IP helper ──────────────────────────────────────────────────────────
 
@@ -79,15 +82,36 @@ export async function createPost(prevState: any, formData: FormData) {
   const userId = (user as any).id;
   const userRole = (user as any).role as user_role;
 
+  // Handle cover image upload
+  let coverImage = null;
+
   // ✅ Rate limit uploads BEFORE reading binary data into memory
   const file = formData.get("coverImage") as File;
   if (file && file.size > 0) {
-    const ip = await getClientIp();
-    const uploadLimit = uploadLimiter(ip);
-    if (!uploadLimit.success) {
+    // 1. Enforce strict MIME Types
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
       return {
-        message: "Too many uploads. Please wait a minute and try again.",
+        message: "Invalid file type. Only JPG, PNG, WEBP, and GIF are allowed.",
       };
+    }
+    // 2. Eradicate Path Traversal by generating our own cryptographically secure name
+    // Do NOT trust file.name under any circumstance.
+    const extension = extname(file.name).toLowerCase();
+    const safeFilename = `${crypto.randomUUID()}${extension}`;
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const uploadPath = path.join(
+      process.cwd(),
+      "public",
+      "uploads",
+      safeFilename,
+    );
+    try {
+      await writeFile(uploadPath, buffer);
+      coverImage = `/uploads/${safeFilename}`;
+    } catch (err) {
+      console.error("Error saving file:", err);
     }
   }
 
@@ -106,19 +130,11 @@ export async function createPost(prevState: any, formData: FormData) {
 
   const { title, content, categoryId, status, excerpt } = validated.data;
 
-  // Handle cover image upload
-  let coverImage = null;
-  if (file && file.size > 0) {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const filename = `${Date.now()}-${file.name.replaceAll(" ", "_")}`;
-    const uploadPath = path.join(process.cwd(), "public", "uploads", filename);
-    try {
-      await writeFile(uploadPath, buffer);
-      coverImage = `/uploads/${filename}`;
-    } catch (err) {
-      console.error("Error saving file:", err);
-    }
-  }
+  const cleanContent = DOMPurify.sanitize(content, {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ["style", "script", "iframe", "form", "object"],
+    FORBID_ATTR: ["onerror", "onload", "onmouseover"],
+  });
 
   // Slug generation
   const slug = title
@@ -144,7 +160,7 @@ export async function createPost(prevState: any, formData: FormData) {
       data: {
         title,
         slug: uniqueSlug,
-        content,
+        content: cleanContent,
         excerpt,
         coverImage,
         categoryId,
@@ -209,6 +225,13 @@ export async function updatePost(
         message: "Too many uploads. Please wait a minute and try again.",
       };
     }
+    // 1. Enforce strict MIME Types
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        message: "Invalid file type. Only JPG, PNG, WEBP, and GIF are allowed.",
+      };
+    }
   }
 
   const rawData = {
@@ -226,14 +249,29 @@ export async function updatePost(
 
   const { title, content, categoryId, status, excerpt } = validated.data;
 
+  const cleanContent = DOMPurify.sanitize(content, {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ["style", "script", "iframe", "form", "object"],
+    FORBID_ATTR: ["onerror", "onload", "onmouseover"],
+  });
+
   // Handle cover image update (optional — keeps existing if no new file)
   let coverImage = existingPost.coverImage;
   if (file && file.size > 0) {
+    // 2. Eradicate Path Traversal by generating our own cryptographically secure name
+    // Do NOT trust file.name under any circumstance.
+    const extension = extname(file.name).toLowerCase();
+    const safeFilename = `${crypto.randomUUID()}${extension}`;
+
     const buffer = Buffer.from(await file.arrayBuffer());
-    const filename = `${Date.now()}-${file.name.replaceAll(" ", "_")}`;
-    const uploadPath = path.join(process.cwd(), "public", "uploads", filename);
+    const uploadPath = path.join(
+      process.cwd(),
+      "public",
+      "uploads",
+      safeFilename,
+    );
     await writeFile(uploadPath, buffer);
-    coverImage = `/uploads/${filename}`;
+    coverImage = `/uploads/${safeFilename}`;
   }
 
   try {
@@ -241,7 +279,7 @@ export async function updatePost(
       where: { id: postId },
       data: {
         title,
-        content,
+        content: cleanContent,
         excerpt,
         coverImage,
         categoryId,
@@ -288,12 +326,29 @@ export async function createCategory(prevState: any, formData: FormData) {
     return { message: validated.error.issues[0].message };
   }
 
-  const slug = name
+  let uniqueSlug = name
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, "")
     .replace(/[\s_-]+/g, "-");
-  const uniqueSlug = `${slug}-${Date.now().toString().slice(-4)}`;
+
+  let slugExists = true;
+  let counter = 1;
+  while (slugExists) {
+    const existing = await db.category.findUnique({
+      where: { slug: uniqueSlug },
+    });
+    if (existing) {
+      uniqueSlug = `${name
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/[\s_-]+/g, "-")}-${counter}`;
+      counter++;
+    } else {
+      slugExists = false;
+    }
+  }
 
   try {
     await db.category.create({
