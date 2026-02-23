@@ -32,7 +32,7 @@ export default auth(function middleware(req: NextRequest) {
     // ✅ unsafe-inline required — Mantine uses CSS-in-JS
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
-    `img-src 'self' data: blob: https://images.unsplash.com`,
+    `img-src 'self' data: blob: https://images.unsplash.com https://thedailymixa-images.s3.eu-north-1.amazonaws.com`,
     `connect-src 'self'`,
     // ✅ Blocks this page from being embedded in iframes (clickjacking)
     `frame-ancestors 'none'`,
