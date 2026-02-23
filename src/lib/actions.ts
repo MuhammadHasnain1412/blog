@@ -10,11 +10,11 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { post_status, user_role } from "@prisma/client";
 import { headers } from "next/headers";
-import { put } from "@vercel/blob";
 import { loginLimiter, uploadLimiter } from "@/lib/rate-limit";
 import DOMPurify from "isomorphic-dompurify";
 import { createSafeAction } from "@/lib/safe-action";
-import { assertBlobConfigured } from "@/lib/env";
+import { assertS3Configured } from "@/lib/env";
+import { uploadToS3 } from "@/lib/s3";
 
 // ── Shared IP helper ──────────────────────────────────────────────────────────
 
@@ -102,15 +102,14 @@ export const createPost = createSafeAction(
       }
 
       try {
-        assertBlobConfigured();
+        assertS3Configured();
         const uniqueName =
           crypto.randomUUID() + extname(file.name).toLowerCase();
-        const blob = await put(`uploads/${uniqueName}`, file, {
-          access: "public",
-        });
-        coverImage = blob.url;
+        coverImage = await uploadToS3(`uploads/${uniqueName}`, file);
       } catch (err) {
-        throw new Error("Cloud Storage connection failed.");
+        console.error("[createPost] upload error:", err);
+        const msg = err instanceof Error ? err.message : "Image upload failed.";
+        throw new Error(msg);
       }
     }
 
@@ -244,15 +243,14 @@ export const updatePost = createSafeAction(
       }
 
       try {
-        assertBlobConfigured();
+        assertS3Configured();
         const uniqueName =
           crypto.randomUUID() + extname(file.name).toLowerCase();
-        const blob = await put(`uploads/${uniqueName}`, file, {
-          access: "public",
-        });
-        coverImage = blob.url;
+        coverImage = await uploadToS3(`uploads/${uniqueName}`, file);
       } catch (err) {
-        throw new Error("Cloud Storage connection failed.");
+        console.error("[updatePost] upload error:", err);
+        const msg = err instanceof Error ? err.message : "Image upload failed.";
+        throw new Error(msg);
       }
     }
 

@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# PM2 ecosystem (contains production secrets — manage on server directly)
+ecosystem.config.js
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

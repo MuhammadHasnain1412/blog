@@ -3,15 +3,8 @@
  *
  * Import this file anywhere that runs on the server — we import it in
  * layout.tsx so it runs on every cold start before any page is rendered.
- *
- * This prevents the app from silently starting with a broken config
- * and then throwing cryptic DB connection errors at runtime.
  */
 
-/**
- * Core variables — the app CANNOT run at all without these.
- * Missing any of these throws at startup (fast-fail).
- */
 const REQUIRED_ENV_VARS = [
   "DATABASE_URL",
   "AUTH_SECRET",
@@ -35,19 +28,23 @@ export function validateEnv() {
 validateEnv();
 
 /**
- * Feature-level guard: Image uploads require BLOB_READ_WRITE_TOKEN.
+ * Feature-level guard: Image uploads require AWS S3 configuration.
  *
  * Call this inside the upload handler (not at startup) so a missing
- * blob token only breaks image uploads, not the entire site.
- *
- * Usage in actions.ts:
- *   assertBlobConfigured();
+ * S3 config only breaks image uploads, not the entire site.
  */
-export function assertBlobConfigured(): void {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+export function assertS3Configured(): void {
+  const missing = [
+    "AWS_S3_BUCKET_NAME",
+    "AWS_S3_REGION",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+  ].filter((k) => !process.env[k]);
+
+  if (missing.length > 0) {
     throw new Error(
-      "Image uploads are not configured on this server. " +
-        "Add BLOB_READ_WRITE_TOKEN to your .env file.",
+      `Image uploads are not configured. Missing: ${missing.join(", ")}. ` +
+        `Add these to your environment variables.`,
     );
   }
 }
