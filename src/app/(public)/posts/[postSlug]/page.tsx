@@ -11,7 +11,7 @@ import {
   Divider,
 } from "@mantine/core";
 import { notFound } from "next/navigation";
-import { absolutePostUrl } from "@/lib/urls";
+import { absolutePostUrl, absoluteUrl } from "@/lib/urls";
 import DOMPurify from "isomorphic-dompurify";
 
 export async function generateMetadata({
@@ -31,18 +31,34 @@ export async function generateMetadata({
   });
   if (!post) return { title: "Not Found" };
 
+  const canonicalUrl = absolutePostUrl(postSlug);
+
   return {
     title: `${post.title} — The Daily Mixa`,
-    description: post.excerpt,
+    description: post.excerpt ?? `Read ${post.title} on The Daily Mixa`,
     alternates: {
-      canonical: absolutePostUrl(postSlug),
+      canonical: canonicalUrl,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true },
     },
     openGraph: {
       title: post.title,
-      description: post.excerpt,
-      images: post.coverImage ? [post.coverImage] : [],
-      url: absolutePostUrl(postSlug),
+      description: post.excerpt ?? "",
+      images: post.coverImage
+        ? [{ url: post.coverImage, width: 1200, height: 630, alt: post.title }]
+        : [],
+      url: canonicalUrl,
       type: "article",
+      siteName: "The Daily Mixa",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt ?? "",
+      images: post.coverImage ? [post.coverImage] : [],
     },
   };
 }
@@ -56,12 +72,59 @@ export default async function BlogPostPage({
 
   const post = await db.post.findUnique({
     where: { slug: postSlug },
-    include: { author: true, category: true },
+    select: {
+      title: true,
+      content: true,
+      excerpt: true,
+      coverImage: true,
+      status: true,
+      publishedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      author: { select: { name: true } },
+      category: { select: { name: true } },
+    },
   });
 
   if (!post || post.status !== "PUBLISHED") {
     return notFound();
   }
+
+  const canonicalUrl = absolutePostUrl(postSlug);
+
+  // ── Article JSON-LD schema ───────────────────────────────────────────────────
+  // Google uses this for rich results: author cards, date, headline, image
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: post.title,
+    description: post.excerpt ?? "",
+    url: canonicalUrl,
+    datePublished: (post.publishedAt ?? post.createdAt).toISOString(),
+    dateModified: post.updatedAt.toISOString(),
+    author: {
+      "@type": "Person",
+      name: post.author?.name ?? "The Daily Mixa Staff",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "The Daily Mixa",
+      logo: {
+        "@type": "ImageObject",
+        url: absoluteUrl("/logo.png"),
+      },
+    },
+    ...(post.coverImage && {
+      image: {
+        "@type": "ImageObject",
+        url: post.coverImage,
+      },
+    }),
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": canonicalUrl,
+    },
+  };
 
   const cleanHTML = DOMPurify.sanitize(post.content, {
     USE_PROFILES: { html: true }, // strips malicious SVG/Mathml traits
@@ -71,6 +134,12 @@ export default async function BlogPostPage({
 
   return (
     <article>
+      {/* ✅ Article JSON-LD — Google rich results: author, date, headline */}
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
       <Container size="md" py={60}>
         <Stack gap="xl">
           {/* Header Section */}
