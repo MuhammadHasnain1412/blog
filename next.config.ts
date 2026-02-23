@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
         pathname: "/**",
       },
+      {
+        // AWS S3 — cover image uploads (matches any bucket/region)
+        protocol: "https",
+        hostname: "*.s3.*.amazonaws.com",
+        pathname: "/**",
+      },
     ],
     dangerouslyAllowSVG: false,
     contentDispositionType: "attachment",
