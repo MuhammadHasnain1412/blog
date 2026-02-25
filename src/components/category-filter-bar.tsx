@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Group, rem } from "@mantine/core";
+import { Group, Text } from "@mantine/core";
+import { usePathname, useRouter } from "next/navigation";
 
 type CategorySummary = {
   name: string;
@@ -14,11 +15,13 @@ type Props = {
 
 /**
  * Renders in-page category filters that hide/show sections client-side
- * without changing the URL. When a category is selected, the page scrolls
- * smoothly to that section so readers immediately see the relevant posts.
+ * on the home page. When clicked on other pages, it navigates to the home page
+ * and filters.
  */
 export default function CategoryFilterBar({ categories }: Props) {
   const [activeSlug, setActiveSlug] = useState<string>("all");
+  const pathname = usePathname();
+  const router = useRouter();
 
   const syncSections = (slug: string) => {
     const sections = document.querySelectorAll<HTMLElement>(
@@ -27,83 +30,94 @@ export default function CategoryFilterBar({ categories }: Props) {
     sections.forEach((section) => {
       const { categorySection } = section.dataset;
       if (!categorySection) return;
-      const hidden =
-        slug !== "all" && categorySection !== slug ? "none" : "";
+      const hidden = slug !== "all" && categorySection !== slug ? "none" : "";
       section.style.display = hidden;
     });
   };
 
   const scrollToSlug = (slug: string) => {
     setActiveSlug(slug);
-    if (slug === "all") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    document
-      .querySelector<HTMLElement>(`[data-category-section='${slug}']`)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // ✅ Update the DOM synchronously before we trigger a scroll action
+    // Otherwise elements might be display:none during scroll computation, or their removal will cause the document to jump.
+    syncSections(slug);
+
+    setTimeout(() => {
+      if (slug === "all") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      const target = document.querySelector<HTMLElement>(
+        `[data-category-section='${slug}']`,
+      );
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 50);
   };
 
   useEffect(() => {
-    syncSections(activeSlug);
-  }, [activeSlug]);
+    if (pathname === "/") {
+      syncSections(activeSlug);
+    }
+  }, [activeSlug, pathname]);
 
   useEffect(() => {
-    const listener = (event: Event) => {
-      const slug = (event as CustomEvent<string>).detail ?? "all";
-      scrollToSlug(slug);
-    };
-    window.addEventListener(
-      "category-filter-select",
-      listener as EventListener,
-    );
-
-    const pending = sessionStorage.getItem("pendingCategoryFilter");
-    if (pending) {
-      sessionStorage.removeItem("pendingCategoryFilter");
-      scrollToSlug(pending);
+    if (pathname === "/") {
+      const pending = sessionStorage.getItem("pendingCategoryFilter");
+      if (pending) {
+        sessionStorage.removeItem("pendingCategoryFilter");
+        setTimeout(() => scrollToSlug(pending), 100);
+      } else {
+        syncSections(activeSlug);
+      }
+    } else {
+      setActiveSlug("");
     }
-
-    return () => {
-      window.removeEventListener(
-        "category-filter-select",
-        listener as EventListener,
-      );
-    };
-  }, []);
+  }, [pathname]);
 
   const handleSelect = (slug: string) => {
-    scrollToSlug(slug);
+    if (pathname === "/") {
+      scrollToSlug(slug);
+    } else {
+      sessionStorage.setItem("pendingCategoryFilter", slug);
+      router.push("/");
+    }
   };
 
   if (categories.length === 0) return null;
 
   return (
-    <Group justify="center" gap="sm" wrap="wrap">
-      <Button
+    <Group gap="xl" h={50} justify="center" wrap="nowrap">
+      <Text
+        fw={700}
         size="sm"
-        variant={activeSlug === "all" ? "filled" : "outline"}
-        onClick={() => handleSelect("all")}
-        radius={0}
-        styles={{
-          root: { letterSpacing: rem(1), textTransform: "uppercase" },
+        tt="uppercase"
+        style={{
+          whiteSpace: "nowrap",
+          cursor: "pointer",
+          color: activeSlug === "all" ? "#000" : "#888",
         }}
+        onClick={() => handleSelect("all")}
+        className="hover-dark"
       >
-        All
-      </Button>
+        HOME
+      </Text>
       {categories.map((category) => (
-        <Button
+        <Text
           key={category.slug}
+          fw={700}
           size="sm"
-          variant={activeSlug === category.slug ? "filled" : "outline"}
-          onClick={() => handleSelect(category.slug)}
-          radius={0}
-          styles={{
-            root: { letterSpacing: rem(1), textTransform: "uppercase" },
+          tt="uppercase"
+          style={{
+            whiteSpace: "nowrap",
+            cursor: "pointer",
+            color: activeSlug === category.slug ? "#000" : "#888",
           }}
+          onClick={() => handleSelect(category.slug)}
+          className="hover-dark"
         >
           {category.name}
-        </Button>
+        </Text>
       ))}
     </Group>
   );

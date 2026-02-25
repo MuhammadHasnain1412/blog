@@ -8,12 +8,19 @@ import {
   Divider,
 } from "@mantine/core";
 import Link from "next/link";
+import { db } from "@/lib/prisma";
+import CategoryFilterBar from "@/components/category-filter-bar";
 
-export default function PublicLayout({
+export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const categories = await db.category.findMany({
+    where: { post: { some: { status: "PUBLISHED" } } },
+    select: { name: true, slug: true },
+    orderBy: { name: "asc" },
+  });
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -80,21 +87,7 @@ export default function PublicLayout({
       >
         <Container size="xl">
           <Box style={{ overflowX: "auto" }}>
-            <Group gap="xl" h={50} justify="center" wrap="nowrap">
-              <Link
-                href="/"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                <Text
-                  fw={700}
-                  size="sm"
-                  tt="uppercase"
-                  style={{ whiteSpace: "nowrap" }}
-                >
-                  HOME
-                </Text>
-              </Link>
-            </Group>
+            <CategoryFilterBar categories={categories} />
           </Box>
         </Container>
       </Box>

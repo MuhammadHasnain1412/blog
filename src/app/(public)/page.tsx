@@ -18,7 +18,6 @@ import {
 import Link from "next/link";
 // Refreshing TS module resolution
 import { postUrl } from "@/lib/urls";
-import CategoryFilterBar from "@/components/category-filter-bar";
 
 // ✅ Revalidate every 60 seconds instead of force-dynamic
 // The home page doesn't need a fresh DB query on every single request —
@@ -104,10 +103,6 @@ async function PostSections() {
 
   const heroPost = posts[0];
   const categoriesWithPosts = Object.values(categoryMap);
-  const categoryFilterData = categoriesWithPosts.map((cat) => ({
-    name: cat.name,
-    slug: cat.slug,
-  }));
 
   if (posts.length === 0) {
     return (
@@ -125,8 +120,6 @@ async function PostSections() {
 
   return (
     <Stack gap={60}>
-      <CategoryFilterBar categories={categoryFilterData} />
-
       {/* Dynamic Category Sections */}
       {categoriesWithPosts.map((cat) => (
         <section
@@ -154,7 +147,7 @@ async function PostSections() {
       {heroPost && (
         <section>
           {/* ✅ Featured section header links to category, not post */}
-          <SectionHeader title="FEATURED STORY" />
+          <SectionHeader title="FEATURED POST" />
           <Flex direction={{ base: "column", md: "row" }} gap="xl">
             <Box style={{ flex: 7 }}>
               {/* ✅ Uses postUrl() — no category in URL */}
