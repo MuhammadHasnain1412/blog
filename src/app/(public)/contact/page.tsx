@@ -83,23 +83,8 @@ export default function ContactPage() {
           <SimpleGrid cols={1} spacing={30}>
             <ContactIcon
               title="Email"
-              description="hello@thedailymixa.com"
+              description="thedailymixa@gmail.com"
               icon={IconMail}
-            />
-            <ContactIcon
-              title="Phone"
-              description="+1 (555) 123-4567"
-              icon={IconPhone}
-            />
-            <ContactIcon
-              title="Address"
-              description="123 Journalism Ave, Media City, NY 10001"
-              icon={IconMapPin}
-            />
-            <ContactIcon
-              title="Working Hours"
-              description="Mon - Fri: 8 a.m. - 6 p.m."
-              icon={IconMapPin}
             />
           </SimpleGrid>
 
