@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   },
   // ✅ Google Search Console ownership verification
   verification: {
-    google: "c6ny6UQl9ttAECL2gsjmAJ4aCBuvcc-ZqivJKKQLRhU",
+    google: "U9C8QI5wacpJ4L2O7JP4GHA8ekWBEcl5SZPbI96TkBw",
   },
 };
 
