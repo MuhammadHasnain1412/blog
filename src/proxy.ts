@@ -26,18 +26,16 @@ export default auth(function middleware(req: NextRequest) {
 
   const csp = [
     `default-src 'self'`,
-    // ✅ nonce allows Mantine's ColorSchemeScript inline script
-    // ✅ unsafe-eval only in dev — required by TipTap/ProseMirror
-    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ""}`,
-    // ✅ unsafe-inline required — Mantine uses CSS-in-JS
+    // ✅ Added googletagmanager.com for GA4 script loading
+    `script-src 'self' 'nonce-${nonce}' https://www.googletagmanager.com${isDev ? " 'unsafe-eval'" : ""}`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
-    `img-src 'self' data: blob: https://images.unsplash.com https://thedailymixa-images.s3.eu-north-1.amazonaws.com`,
-    `connect-src 'self'`,
-    // ✅ Blocks this page from being embedded in iframes (clickjacking)
+    // ✅ Added google-analytics.com for GA4 image pings
+    `img-src 'self' data: blob: https://images.unsplash.com https://thedailymixa-images.s3.eu-north-1.amazonaws.com https://www.google-analytics.com`,
+    // ✅ Added GA4 domains for analytics data collection
+    `connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com`,
     `frame-ancestors 'none'`,
   ].join("; ");
-
   // Set headers on request
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
