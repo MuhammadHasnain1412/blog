@@ -10,7 +10,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 
 const BASE_URL = process.env.NEXTAUTH_URL ?? "https://thedailymixa.com";
-const GA_ID = "G-6BMBVYCBMH";
+const GA_ID = "G-CDXDM2L4RD";
 
 export const metadata: Metadata = {
   title: {
