@@ -1,5 +1,6 @@
 "use client";
 
+import { postUrl } from "@/lib/urls";
 import { Card, Image, Stack, Group, Badge, Title, Text } from "@mantine/core";
 import Link from "next/link";
 
@@ -22,7 +23,7 @@ interface ArchiveCardProps {
 export default function ArchiveCard({ post }: ArchiveCardProps) {
   return (
     <Link
-      href={`/${post.category?.slug}/${post.slug}`}
+      href={postUrl(post.slug)}
       style={{ textDecoration: "none", color: "inherit" }}
     >
       <Card padding="lg" radius="md" withBorder className="hover-card">

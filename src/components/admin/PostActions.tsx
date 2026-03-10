@@ -4,6 +4,7 @@ import { ActionIcon, Menu } from "@mantine/core";
 import { IconDots, IconEye, IconPencil } from "@tabler/icons-react";
 import Link from "next/link";
 import DeletePostMenuItem from "@/components/admin/DeletePostMenuItem";
+import { postUrl } from "@/lib/urls";
 
 interface PostActionsProps {
   post: {
@@ -34,7 +35,7 @@ export default function PostActions({
         <Menu.Item
           leftSection={<IconEye size={16} />}
           component="a"
-          href={`/${post.category.slug}/${post.slug}`}
+          href={postUrl(post.slug)}
           target="_blank"
         >
           View Live
