@@ -10,6 +10,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 
 const BASE_URL = process.env.NEXTAUTH_URL ?? "https://thedailymixa.com";
+const GA_ID = "G-6BMBVYCBMH";
 
 export const metadata: Metadata = {
   title: {
@@ -83,6 +84,21 @@ export default async function RootLayout({
       <head>
         {/* ✅ Pass nonce so Mantine's inline script is allowed by CSP */}
         <ColorSchemeScript nonce={nonce} suppressHydrationWarning />
+        <script
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+        />
+        <script
+          nonce={nonce}
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${GA_ID}');
+            `,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
