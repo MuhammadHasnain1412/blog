@@ -49,18 +49,19 @@ export async function authenticate(
       password: formData.get("password"),
       redirectTo: "/dashboard",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { type?: string; message?: string; digest?: string };
     if (
-      error?.type === "CredentialsSignin" ||
-      error?.message?.includes("CredentialsSignin")
+      err.type === "CredentialsSignin" ||
+      err.message?.includes("CredentialsSignin")
     ) {
       return "Invalid credentials.";
     }
-    if (error && typeof error === "object" && "digest" in error) {
+    if (err.digest) {
       throw error;
     }
-    if (error?.message) {
-      console.error(error);
+    if (err.message) {
+      console.error(err.message);
       return "Something went wrong.";
     }
     throw error; // Re-throw — Next.js uses this to handle the redirect
@@ -79,9 +80,16 @@ const PostSchema = z.object({
 
 export const createPost = createSafeAction(
   PostSchema,
-  async (validatedData, userId, formData: any) => {
+  async (
+    validatedData,
+    userId,
+    formData: FormData | Record<string, unknown>,
+  ) => {
     let coverImage = null;
-    const file = formData.get("coverImage") as File;
+    const file =
+      formData instanceof FormData
+        ? ((formData as FormData).get("coverImage") as File)
+        : null;
     if (file && file.size > 0) {
       const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
       if (file.size > MAX_FILE_SIZE) {
@@ -177,7 +185,11 @@ const UpdatePostSchema = PostSchema.extend({
 
 export const updatePost = createSafeAction(
   UpdatePostSchema,
-  async (validatedData, userId, formData: any) => {
+  async (
+    validatedData,
+    userId,
+    formData: FormData | Record<string, unknown>,
+  ) => {
     const { title, content, categoryId, status, excerpt, postId } =
       validatedData;
 
@@ -213,7 +225,10 @@ export const updatePost = createSafeAction(
 
     // Handle file upload
     let coverImage = existingPost.coverImage;
-    const file = formData.get("coverImage") as File;
+    const file =
+      formData instanceof FormData
+        ? ((formData as FormData).get("coverImage") as File)
+        : null;
     if (file && file.size > 0) {
       const MAX_FILE_SIZE = 5 * 1024 * 1024;
       if (file.size > MAX_FILE_SIZE) {
@@ -297,9 +312,10 @@ const CategorySchema = z.object({
 
 export const createCategory = createSafeAction(
   CategorySchema,
-  async (validatedData, userId) => {
+  async (validatedData) => {
     const user = await getCurrentUser();
-    const role = (user as any).role as user_role;
+    if (!user) throw new Error("Unauthorized");
+    const role = user.role;
 
     if (!canManageCategories(role)) {
       throw new Error(

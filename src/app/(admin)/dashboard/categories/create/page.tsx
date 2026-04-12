@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { createCategory } from "@/lib/actions";
 import {

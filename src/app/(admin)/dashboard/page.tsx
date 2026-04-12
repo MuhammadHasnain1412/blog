@@ -2,7 +2,8 @@ import { db } from "@/lib/prisma";
 import { Title, SimpleGrid, Paper, Text, Group } from "@mantine/core";
 import { IconFileText, IconFolders, IconUsers } from "@tabler/icons-react";
 import { getCurrentUser, isAdmin } from "@/lib/rbac";
-import { user_role } from "@prisma/client";
+
+import { type ElementType } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,10 @@ async function getStats() {
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
+  if (!user) return null;
+
   const { postCount, categoryCount, userCount } = await getStats();
-  const role = (user as any)?.role as user_role;
+  const role = user.role;
 
   return (
     <div>
@@ -61,7 +64,7 @@ function StatCard({
 }: {
   title: string;
   value: number;
-  icon: any;
+  icon: ElementType;
   color: string;
 }) {
   return (

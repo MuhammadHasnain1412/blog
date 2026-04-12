@@ -1,10 +1,9 @@
 import { db } from "@/lib/prisma";
 import PostForm from "@/components/posts/PostForm";
-import { Title, Container, Stack, Breadcrumbs, Text } from "@mantine/core"; 
+import { Title, Container, Stack, Breadcrumbs, Text } from "@mantine/core";
 import { getCurrentUser, canEditPost } from "@/lib/rbac";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { user_role } from "@prisma/client";
 
 export default async function EditPostPage({
   params,
@@ -22,14 +21,7 @@ export default async function EditPostPage({
 
   if (!post) notFound();
 
-  const userRole = (user as any).role as user_role;
-  const userSession = {
-    id: (user as any).id,
-    email: user.email!,
-    role: userRole,
-  };
-
-  if (!canEditPost(userSession, post.authorId)) {
+  if (!canEditPost(user, post.authorId)) {
     redirect("/dashboard/posts");
   }
 

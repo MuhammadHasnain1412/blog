@@ -7,12 +7,10 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/"],
-        // ✅ Block admin, auth, and API routes from being indexed
-        disallow: ["/dashboard/", "/login", "/api/"],
+        // ✅ Block admin and API routes from being crawled
+        disallow: ["/dashboard/", "/api/"],
       },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`,
-    host: BASE_URL,
   };
 }

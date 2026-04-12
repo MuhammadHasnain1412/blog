@@ -22,8 +22,9 @@ export default function DeletePostMenuItem({
       centered: true,
       children: (
         <Text size="sm">
-          Are you sure you want to delete <b>"{postTitle}"</b>? This will
-          permanently remove the story from the public blog and the database.
+          Are you sure you want to delete <b>&quot;{postTitle}&quot;</b>? This
+          will permanently remove the story from the public blog and the
+          database.
         </Text>
       ),
       labels: { confirm: "Delete Post", cancel: "Cancel" },

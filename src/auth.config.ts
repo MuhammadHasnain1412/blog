@@ -50,13 +50,7 @@ export const authConfig = {
   },
 
   callbacks: {
-    authorized({
-      auth,
-      request: { nextUrl },
-    }: {
-      auth: any;
-      request: { nextUrl: any };
-    }) {
+    authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
       const isOnLogin = nextUrl.pathname === "/login";

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   Container,
   Title,
@@ -9,8 +10,25 @@ import {
   Box,
 } from "@mantine/core";
 import { IconNews, IconWorld, IconUsers } from "@tabler/icons-react";
+import { absoluteUrl } from "@/lib/urls";
 
-export const dynamic = "force-dynamic";
+type FeatureIcon = typeof IconNews;
+
+export const metadata: Metadata = {
+  title: "About",
+  description:
+    "Learn about The Daily Mixa, our mission, and our editorial approach.",
+  alternates: {
+    canonical: absoluteUrl("/about"),
+  },
+  openGraph: {
+    title: "About — The Daily Mixa",
+    description:
+      "Learn about The Daily Mixa, our mission, and our editorial approach.",
+    url: absoluteUrl("/about"),
+    type: "website",
+  },
+};
 
 export default function AboutPage() {
   return (
@@ -66,7 +84,7 @@ export default function AboutPage() {
             platform for underrepresented voices.
           </Text>
           <Text>
-            Whether it's breaking news, in-depth analysis, or cultural
+            Whether it&apos;s breaking news, in-depth analysis, or cultural
             commentary, we strive to provide content that matters. Thank you for
             being part of our journey.
           </Text>
@@ -81,7 +99,7 @@ function Feature({
   title,
   description,
 }: {
-  icon: any;
+  icon: FeatureIcon;
   title: string;
   description: string;
 }) {

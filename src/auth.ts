@@ -1,12 +1,31 @@
 // src/auth.ts
-import NextAuth from "next-auth";
+import NextAuth, { type DefaultSession } from "next-auth";
 import { authConfig } from "./auth.config";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import { db } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { type user_role } from "@prisma/client";
 
-const FIFTEEN_MINUTES = 15 * 60;
+// ✅ Module Augmentation to extend NextAuth types
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      role: user_role;
+    } & DefaultSession["user"];
+  }
+
+  interface User {
+    role?: user_role;
+  }
+
+  interface JWT {
+    id: string;
+    role: user_role;
+  }
+}
+
 const ONE_DAY = 24 * 60 * 60;
 const THIRTY_DAYS = 30 * ONE_DAY;
 
@@ -88,8 +107,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
   callbacks: {
     async jwt({ token, user, trigger }) {
       if (user) {
-        token.id = user.id;
-        token.role = (user as any).role;
+        token.id = user.id as string;
+        token.role = user.role as user_role;
         token.email = user.email;
       }
 
@@ -105,8 +124,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as any).id = token.id as string;
-        (session.user as any).role = token.role;
+        session.user.id = token.id as string;
+        session.user.role = token.role as user_role;
       }
       return session;
     },

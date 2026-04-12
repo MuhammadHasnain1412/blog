@@ -22,8 +22,9 @@ export default function DeleteCategoryMenuItem({
       centered: true,
       children: (
         <Text size="sm">
-          Are you sure you want to delete the category <b>"{categoryName}"</b>?
-          This action can only be completed if the category contains no stories.
+          Are you sure you want to delete the category{" "}
+          <b>&quot;{categoryName}&quot;</b>? This action can only be completed
+          if the category contains no stories.
         </Text>
       ),
       labels: { confirm: "Delete Category", cancel: "Cancel" },

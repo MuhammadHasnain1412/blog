@@ -41,7 +41,7 @@ export default auth(function middleware(req: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
 
   // Return response with modified headers
-  let res = NextResponse.next({
+  const res = NextResponse.next({
     request: {
       headers: requestHeaders,
     },

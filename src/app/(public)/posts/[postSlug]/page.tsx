@@ -13,6 +13,7 @@ import {
 import { notFound } from "next/navigation";
 import { absolutePostUrl, absoluteUrl } from "@/lib/urls";
 import DOMPurify from "isomorphic-dompurify";
+import { JSDOM } from "jsdom";
 
 export async function generateMetadata({
   params,
@@ -34,7 +35,7 @@ export async function generateMetadata({
   const canonicalUrl = absolutePostUrl(postSlug);
 
   return {
-    title: `${post.title} — The Daily Mixa`,
+    title: post.title,
     description: post.excerpt ?? `Read ${post.title} on The Daily Mixa`,
     alternates: {
       canonical: canonicalUrl,
@@ -131,6 +132,7 @@ export default async function BlogPostPage({
     FORBID_TAGS: ["style", "script", "iframe", "form", "object"],
     FORBID_ATTR: ["onerror", "onload", "onmouseover"], // block inline JS execution
   });
+  const normalizedHTML = normalizeArticleLinks(cleanHTML);
 
   return (
     <article>
@@ -197,7 +199,7 @@ export default async function BlogPostPage({
             <TypographyStylesProvider>
               <div
                 style={{ fontSize: "1.2rem", lineHeight: 1.8 }}
-                dangerouslySetInnerHTML={{ __html: cleanHTML }}
+                dangerouslySetInnerHTML={{ __html: normalizedHTML }}
               />
             </TypographyStylesProvider>
           </Container>
@@ -209,4 +211,47 @@ export default async function BlogPostPage({
       </Container>
     </article>
   );
+}
+
+function normalizeArticleLinks(html: string): string {
+  const dom = new JSDOM(`<body>${html}</body>`);
+  const siteOrigin = new URL(absoluteUrl("/")).origin;
+  const anchors = dom.window.document.querySelectorAll("a[href]");
+
+  Array.from(anchors).forEach((node) => {
+    const anchor = node as Element;
+    const href = anchor.getAttribute("href");
+
+    if (!href) {
+      return;
+    }
+
+    try {
+      const url = new URL(href, absoluteUrl("/"));
+
+      if (url.origin !== siteOrigin) {
+        return;
+      }
+
+      const relValues = new Set(
+        (anchor.getAttribute("rel") ?? "")
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((value) => value.toLowerCase()),
+      );
+
+      relValues.delete("nofollow");
+
+      if (relValues.size === 0) {
+        anchor.removeAttribute("rel");
+        return;
+      }
+
+      anchor.setAttribute("rel", Array.from(relValues).join(" "));
+    } catch {
+      // Ignore malformed hrefs and leave them untouched.
+    }
+  });
+
+  return dom.window.document.body.innerHTML;
 }

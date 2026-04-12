@@ -1,6 +1,6 @@
 "use client";
 
-import { RichTextEditor, Link as MantineLink } from "@mantine/tiptap";
+import { RichTextEditor } from "@mantine/tiptap";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";

@@ -7,7 +7,21 @@ import "@mantine/tiptap/styles.css";
 import { Providers } from "@/components/providers";
 import { auth } from "@/auth";
 import { headers } from "next/headers";
+import { Inter, Playfair_Display } from "next/font/google";
+import { GoogleTagManager, GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+});
 
 const BASE_URL = process.env.NEXTAUTH_URL ?? "https://thedailymixa.com";
 const GA_ID = "G-CDXDM2L4RD";
@@ -20,10 +34,6 @@ export const metadata: Metadata = {
   description:
     "The Daily Mixa — Breaking news, in-depth analysis, and the stories that matter. Your trusted source for daily news.",
   metadataBase: new URL(BASE_URL),
-  // ✅ Canonical homepage URL — tells Google the definitive URL of the home page
-  alternates: {
-    canonical: BASE_URL,
-  },
   // ✅ Site-wide OpenGraph defaults
   openGraph: {
     siteName: "The Daily Mixa",
@@ -63,20 +73,12 @@ export default async function RootLayout({
   // ✅ Read nonce set by proxy.ts — falls back gracefully if header not present
   const nonce = (await headers()).get("x-nonce") ?? "";
 
-  // ✅ WebSite schema with SearchAction — enables Google Sitelinks Search Box
+  // WebSite schema
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "The Daily Mixa",
     url: BASE_URL,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${BASE_URL}/archive?q={search_term_string}`,
-      },
-      "query-input": "required name=search_term_string",
-    },
   };
 
   return (
@@ -84,50 +86,10 @@ export default async function RootLayout({
       <head>
         {/* ✅ Pass nonce so Mantine's inline script is allowed by CSP */}
         <ColorSchemeScript nonce={nonce} suppressHydrationWarning />
-        {/* Google Tag Manager */}
-        <script
-          nonce={nonce}
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(w,d,s,l,i){w[l]=w[l]||[];
-              w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
-              var f=d.getElementsByTagName(s)[0],
-              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
-              j.async=true;
-              j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-              f.parentNode.insertBefore(j,f);
-              })(window,document,'script','dataLayer','GTM-KP8M9TJC');
-            `,
-          }}
-        />
+        <GoogleTagManager gtmId="GTM-KP8M9TJC" />
+        <GoogleAnalytics gaId={GA_ID} />
 
-        <script
-          async
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-        />
-        <script
-          nonce={nonce}
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${GA_ID}');
-            `,
-          }}
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@100..900&display=swap"
-          rel="stylesheet"
-        />
-
-        {/* ✅ WebSite Schema with SearchAction */}
+        {/* WebSite schema */}
         <script
           type="application/ld+json"
           nonce={nonce}
@@ -136,15 +98,7 @@ export default async function RootLayout({
         />
       </head>
 
-      <body>
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-KP8M9TJC"
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
+      <body className={`${inter.variable} ${playfair.variable}`}>
         <Providers session={session}>{children}</Providers>
       </body>
     </html>

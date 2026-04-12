@@ -15,7 +15,7 @@ async function main() {
   const adminPassword = "admin123";
   const adminHash = await bcrypt.hash(adminPassword, 10);
 
-  const admin = await db.user.upsert({
+  await db.user.upsert({
     where: { email: adminEmail },
     update: { passwordHash: adminHash },
     create: {
@@ -31,7 +31,7 @@ async function main() {
   const editorPassword = "editor123";
   const editorHash = await bcrypt.hash(editorPassword, 10);
 
-  const editor = await db.user.upsert({
+  await db.user.upsert({
     where: { email: editorEmail },
     update: { passwordHash: editorHash },
     create: {
@@ -47,7 +47,7 @@ async function main() {
   const authorPassword = "author123";
   const authorHash = await bcrypt.hash(authorPassword, 10);
 
-  const author = await db.user.upsert({
+  await db.user.upsert({
     where: { email: authorEmail },
     update: { passwordHash: authorHash },
     create: {

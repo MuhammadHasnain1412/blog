@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   Container,
   Title,
@@ -12,15 +13,28 @@ import {
   Divider,
 } from "@mantine/core";
 import {
-  IconMapPin,
-  IconPhone,
   IconMail,
   IconBrandTwitter,
   IconBrandYoutube,
   IconBrandInstagram,
 } from "@tabler/icons-react";
+import { absoluteUrl } from "@/lib/urls";
 
-export const dynamic = "force-dynamic";
+type ContactIconComponent = typeof IconMail;
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description: "Get in touch with The Daily Mixa editorial team.",
+  alternates: {
+    canonical: absoluteUrl("/contact"),
+  },
+  openGraph: {
+    title: "Contact — The Daily Mixa",
+    description: "Get in touch with The Daily Mixa editorial team.",
+    url: absoluteUrl("/contact"),
+    type: "website",
+  },
+};
 
 export default function ContactPage() {
   return (
@@ -35,7 +49,7 @@ export default function ContactPage() {
           letterSpacing: "2px",
         }}
       >
-        Get inside touch
+        Get in touch
       </Title>
 
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing={50}>
@@ -76,7 +90,7 @@ export default function ContactPage() {
         <Box>
           <Text c="dimmed" mb={40} size="lg">
             Have a news tip? Want to advertise with us? Or just want to say
-            hello? We'd love to hear from you. Fill out the form or reach us
+            hello? We&apos;d love to hear from you. Fill out the form or reach us
             through our channels below.
           </Text>
 
@@ -105,16 +119,13 @@ function ContactIcon({
   icon: Icon,
   title,
   description,
-  ...others
 }: {
-  icon: any;
+  icon: ContactIconComponent;
   title: string;
   description: string;
-  variant?: string;
-  [key: string]: any;
 }) {
   return (
-    <div {...others}>
+    <div>
       <Group align="flex-start">
         <Box
           p={10}
@@ -136,7 +147,13 @@ function ContactIcon({
   );
 }
 
-function ActionIconWithLink({ icon: Icon, size }: { icon: any; size: number }) {
+function ActionIconWithLink({
+  icon: Icon,
+  size,
+}: {
+  icon: ContactIconComponent;
+  size: number;
+}) {
   return (
     <Button
       variant="outline"
