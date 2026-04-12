@@ -15,6 +15,8 @@ import DOMPurify from "isomorphic-dompurify";
 import { createSafeAction } from "@/lib/safe-action";
 import { assertS3Configured } from "@/lib/env";
 import { uploadToS3 } from "@/lib/s3";
+import { notifyGoogleOfUrl } from "@/lib/google-indexing";
+import { absolutePostUrl } from "@/lib/urls";
 
 // ── Shared IP helper ──────────────────────────────────────────────────────────
 
@@ -173,6 +175,13 @@ export const createPost = createSafeAction(
     revalidatePath("/dashboard/posts");
     revalidatePath("/");
     revalidatePath(`/posts/${createdSlug}`);
+
+    // ✅ Notify Google of new content if published
+    if (status === post_status.PUBLISHED) {
+      // Don't await — let it happen in background to kept action fast
+      notifyGoogleOfUrl(absolutePostUrl(createdSlug));
+    }
+
     redirect("/dashboard/posts");
   },
 );
@@ -298,6 +307,12 @@ export const updatePost = createSafeAction(
     revalidatePath("/dashboard/posts");
     revalidatePath("/");
     revalidatePath(`/posts/${existingPost.slug}`);
+
+    // ✅ Notify Google of content update if published
+    if (status === post_status.PUBLISHED) {
+      notifyGoogleOfUrl(absolutePostUrl(existingPost.slug));
+    }
+
     redirect("/dashboard/posts");
   },
 );
@@ -406,6 +421,8 @@ export const deletePost = createSafeAction(
 
       if (post) {
         revalidatePath(`/posts/${post.slug}`);
+        // ✅ Notify Google of deletion if it was a public post
+        notifyGoogleOfUrl(absolutePostUrl(post.slug), "URL_DELETED");
       }
     } catch (e) {
       console.error(e);
