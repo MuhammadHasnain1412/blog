@@ -7,7 +7,6 @@ import {
   NavLink,
   Text,
   Title,
-  useMantineTheme,
   Box,
   Divider,
   Badge,
@@ -25,15 +24,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 
+import { user_role } from "@prisma/client";
+
 export default function AdminShell({
   children,
   user,
 }: {
   children: React.ReactNode;
-  user: any;
+  user: {
+    name?: string | null;
+    email?: string | null;
+    role: user_role | string;
+  } | null;
 }) {
   const [opened, { toggle }] = useDisclosure();
-  const theme = useMantineTheme();
   const pathname = usePathname();
 
   const links = [

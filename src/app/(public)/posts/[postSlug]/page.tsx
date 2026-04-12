@@ -13,6 +13,10 @@ import {
 import { notFound } from "next/navigation";
 import { absolutePostUrl, absoluteUrl } from "@/lib/urls";
 import DOMPurify from "isomorphic-dompurify";
+import { JSDOM } from "jsdom";
+
+// ✅ ISR: Revalidate this page every hour (3600 seconds)
+export const revalidate = 3600;
 
 export async function generateMetadata({
   params,
@@ -26,15 +30,20 @@ export async function generateMetadata({
       title: true,
       excerpt: true,
       coverImage: true,
+      publishedAt: true,
+      createdAt: true,
+      author: { select: { name: true } },
       category: { select: { name: true } },
     },
   });
+
   if (!post) return { title: "Not Found" };
 
   const canonicalUrl = absolutePostUrl(postSlug);
+  const ogImage = post.coverImage || absoluteUrl("/og-default.jpg");
 
   return {
-    title: `${post.title} — The Daily Mixa`,
+    title: post.title,
     description: post.excerpt ?? `Read ${post.title} on The Daily Mixa`,
     alternates: {
       canonical: canonicalUrl,
@@ -47,18 +56,18 @@ export async function generateMetadata({
     openGraph: {
       title: post.title,
       description: post.excerpt ?? "",
-      images: post.coverImage
-        ? [{ url: post.coverImage, width: 1200, height: 630, alt: post.title }]
-        : [],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: post.title }],
       url: canonicalUrl,
       type: "article",
       siteName: "The Daily Mixa",
+      publishedTime: (post.publishedAt || post.createdAt).toISOString(),
+      authors: post.author?.name ? [post.author.name] : [],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.excerpt ?? "",
-      images: post.coverImage ? [post.coverImage] : [],
+      images: [ogImage],
     },
   };
 }
@@ -93,10 +102,9 @@ export default async function BlogPostPage({
   const canonicalUrl = absolutePostUrl(postSlug);
 
   // ── Article JSON-LD schema ───────────────────────────────────────────────────
-  // Google uses this for rich results: author cards, date, headline, image
   const articleSchema = {
     "@context": "https://schema.org",
-    "@type": "NewsArticle",
+    "@type": "Article", // Use generic Article or NewsArticle
     headline: post.title,
     description: post.excerpt ?? "",
     url: canonicalUrl,
@@ -127,22 +135,21 @@ export default async function BlogPostPage({
   };
 
   const cleanHTML = DOMPurify.sanitize(post.content, {
-    USE_PROFILES: { html: true }, // strips malicious SVG/Mathml traits
+    USE_PROFILES: { html: true },
     FORBID_TAGS: ["style", "script", "iframe", "form", "object"],
-    FORBID_ATTR: ["onerror", "onload", "onmouseover"], // block inline JS execution
+    FORBID_ATTR: ["onerror", "onload", "onmouseover"],
   });
+  const normalizedHTML = normalizeArticleLinks(cleanHTML);
 
   return (
     <article>
-      {/* ✅ Article JSON-LD — Google rich results: author, date, headline */}
+      {/* ✅ Article JSON-LD — Essential for SEO author cards and rich results */}
       <script
         type="application/ld+json"
-        suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
       />
       <Container size="md" py={60}>
         <Stack gap="xl">
-          {/* Header Section */}
           <Stack gap="md" align="center">
             <Badge color="dark" size="lg" radius="xs" variant="outline">
               {post.category?.name || "Uncategorized"}
@@ -182,7 +189,6 @@ export default async function BlogPostPage({
             </Group>
           </Stack>
 
-          {/* Featured Image */}
           {post.coverImage && (
             <Image
               src={post.coverImage}
@@ -192,21 +198,56 @@ export default async function BlogPostPage({
             />
           )}
 
-          {/* Content */}
           <Container size="sm" p={0}>
             <TypographyStylesProvider>
               <div
                 style={{ fontSize: "1.2rem", lineHeight: 1.8 }}
-                dangerouslySetInnerHTML={{ __html: cleanHTML }}
+                dangerouslySetInnerHTML={{ __html: normalizedHTML }}
               />
             </TypographyStylesProvider>
           </Container>
 
           <Divider my="xl" />
-
-          {/* Related / Footer Tags can go here */}
         </Stack>
       </Container>
     </article>
   );
+}
+
+function normalizeArticleLinks(html: string): string {
+  const dom = new JSDOM(`<body>${html}</body>`);
+  const siteOrigin = new URL(absoluteUrl("/")).origin;
+  const anchors = dom.window.document.querySelectorAll("a[href]");
+
+  Array.from(anchors).forEach((node) => {
+    const anchor = node as Element;
+    const href = anchor.getAttribute("href");
+
+    if (!href) return;
+
+    try {
+      const url = new URL(href, absoluteUrl("/"));
+      if (url.origin !== siteOrigin) return;
+
+      const relValues = new Set(
+        (anchor.getAttribute("rel") ?? "")
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((value) => value.toLowerCase()),
+      );
+
+      relValues.delete("nofollow");
+
+      if (relValues.size === 0) {
+        anchor.removeAttribute("rel");
+        return;
+      }
+
+      anchor.setAttribute("rel", Array.from(relValues).join(" "));
+    } catch {
+      // Ignore malformed hrefs
+    }
+  });
+
+  return dom.window.document.body.innerHTML;
 }

@@ -3,7 +3,6 @@ import { Title, Group, Button, Badge, Text, Card, Box } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import Link from "next/link";
 import { getCurrentUser, isAdmin, canManageCategories } from "@/lib/rbac";
-import { user_role } from "@prisma/client";
 import CategoryActions from "@/components/admin/CategoryActions";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +11,7 @@ export default async function CategoriesPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const userRole = (user as any).role as user_role;
+  const userRole = user.role;
 
   const categories = await db.category.findMany({
     include: { _count: { select: { post: true } } },

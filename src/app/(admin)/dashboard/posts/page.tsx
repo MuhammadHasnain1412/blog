@@ -9,16 +9,9 @@ import {
   Tooltip,
   Box,
 } from "@mantine/core";
-import {
-  IconPencil,
-  IconTrash,
-  IconEye,
-  IconPlus,
-  IconHistory,
-} from "@tabler/icons-react";
+import { IconPlus, IconHistory } from "@tabler/icons-react";
 import Link from "next/link";
 import { getCurrentUser, canDeleteAnyPost, canEditPost } from "@/lib/rbac";
-import { user_role } from "@prisma/client";
 import PostActions from "@/components/admin/PostActions";
 
 export const dynamic = "force-dynamic";
@@ -27,12 +20,7 @@ export default async function PostsPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const userRole = (user as any).role as user_role;
-  const userSession = {
-    id: (user as any).id,
-    email: user.email!,
-    role: userRole,
-  };
+  const userRole = user.role;
 
   const posts = await db.post.findMany({
     select: {
@@ -44,7 +32,7 @@ export default async function PostsPage() {
       lastUpdatedById: true,
       createdAt: true,
       author: {
-        select: { name: true }, 
+        select: { name: true },
       },
       lastUpdater: {
         select: { name: true },
@@ -199,7 +187,7 @@ export default async function PostsPage() {
                   <td style={{ textAlign: "right", padding: "12px 16px" }}>
                     <PostActions
                       post={post}
-                      canEdit={canEditPost(userSession, post.authorId)}
+                      canEdit={canEditPost(user, post.authorId)}
                       canDelete={canDeleteAnyPost(userRole)}
                     />
                   </td>

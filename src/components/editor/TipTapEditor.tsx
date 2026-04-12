@@ -1,6 +1,6 @@
 "use client";
 
-import { RichTextEditor, Link as MantineLink } from "@mantine/tiptap";
+import { RichTextEditor } from "@mantine/tiptap";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -44,7 +44,6 @@ export default function TipTapEditor({
   // Handle external value updates (initial load)
   useEffect(() => {
     if (editor && value && editor.getHTML() !== value) {
-      // A bit naive, but helps with initial load if editor is empty
       if (editor.getText() === "") {
         editor.commands.setContent(value);
       }

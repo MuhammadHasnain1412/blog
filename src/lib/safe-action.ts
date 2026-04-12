@@ -6,53 +6,36 @@ export function createSafeAction<TInput, TOutput>(
   handler: (
     validatedData: TInput,
     userId: string,
-    originalInput: any,
+    originalInput: FormData | Record<string, unknown>,
   ) => Promise<TOutput>,
 ) {
   return async (
-    prevState: any,
+    _prevState: unknown,
     formData: FormData | unknown,
   ): Promise<{ message?: string; success?: boolean; data?: TOutput }> => {
     try {
-      // 1. Mandatory Session Verification inside the bridge
       const user = await getCurrentUser();
+      if (!user) return { message: "Unauthorized", success: false };
 
-      if (!user) {
-        return { message: "Unauthorized", success: false };
-      }
+      const userId = user.id;
 
-      const userId = (user as any).id;
+      const dataToValidate: unknown =
+        formData instanceof FormData
+          ? Object.fromEntries(formData.entries())
+          : formData;
 
-      let dataToValidate: unknown;
-
-      if (formData instanceof FormData) {
-        // Convert FormData to a plain object for Zod parsing
-        dataToValidate = Object.fromEntries(formData.entries());
-      } else {
-        dataToValidate = formData;
-      }
-
-      // 2. Strict Zod parsing
-      // Note: The schema itself must use .strict() if it's an object to strip unknown fields
       const validatedData = schema.parse(dataToValidate);
-
-      // 3. Execute logic securely
-      const result = await handler(validatedData, userId, formData);
-
+      const result = await handler(
+        validatedData,
+        userId,
+        formData as FormData | Record<string, unknown>,
+      );
       return { success: true, data: result };
     } catch (e: unknown) {
       if (e instanceof z.ZodError) {
-        return {
-          message: (e as any).errors[0].message,
-          success: false,
-        };
+        return { message: e.issues[0].message, success: false };
       }
-
-      // Re-throw Next.js redirect/notFound errors
-      if (e && typeof e === "object" && "digest" in e) {
-        throw e;
-      }
-
+      if (e && typeof e === "object" && "digest" in e) throw e;
       console.error(e);
       return { message: "An unexpected error occurred.", success: false };
     }

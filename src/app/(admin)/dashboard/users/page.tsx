@@ -2,7 +2,6 @@ import { db } from "@/lib/prisma";
 import { Title, Badge, Text, Card, Group, Avatar, Box } from "@mantine/core";
 import { getCurrentUser, isAdmin } from "@/lib/rbac";
 import { redirect } from "next/navigation";
-import { user_role } from "@prisma/client";
 import DeleteUserButton from "@/components/admin/DeleteUserButton";
 
 export const dynamic = "force-dynamic";
@@ -11,13 +10,12 @@ export default async function UsersPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const currentUserId = (user as any).id;
-  const userRole = (user as any).role as user_role;
+  const currentUserId = user.id;
+  const userRole = user.role;
   if (!isAdmin(userRole)) {
     redirect("/dashboard");
   }
 
-  // ✅ Explicit select — passwordHash is never pulled into server memory
   const users = await db.user.findMany({
     select: {
       id: true,

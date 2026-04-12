@@ -3,15 +3,17 @@ import { user_role } from "@prisma/client";
 
 export type UserSession = {
   id: string;
-  email: string;
+  email: string | null | undefined;
   role: user_role;
+  name?: string | null | undefined;
+  image?: string | null | undefined;
 };
 
-export async function getCurrentUser() {
+export async function getCurrentUser(): Promise<UserSession | null> {
   const session = await auth();
   if (!session?.user?.email) return null;
 
-  return session.user;
+  return session.user as UserSession;
 }
 
 /**
@@ -68,7 +70,7 @@ export async function checkPermission(requiredRoles: user_role[]) {
     throw new Error("Unauthorized");
   }
 
-  const userRole = (session.user as any).role as user_role;
+  const userRole = session.user.role;
 
   if (!requiredRoles.includes(userRole)) {
     throw new Error("Forbidden: Insufficient Permissions");

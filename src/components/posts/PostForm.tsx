@@ -22,12 +22,21 @@ const TipTapEditor = dynamic(() => import("@/components/editor/TipTapEditor"), {
   loading: () => <p>Loading editor...</p>,
 });
 
+interface PostInitialData {
+  id: string;
+  title: string;
+  content: string;
+  categoryId: string;
+  status: string;
+  excerpt?: string | null;
+}
+
 export default function PostForm({
   categories,
   initialData,
 }: {
   categories: { id: string; name: string }[];
-  initialData?: any;
+  initialData?: PostInitialData;
 }) {
   const isEditing = !!initialData;
   const action = isEditing ? updatePost : createPost;
@@ -53,7 +62,7 @@ export default function PostForm({
             label="Title"
             name="title"
             placeholder="Post Title"
-            defaultValue={initialData?.title}
+            defaultValue={initialData?.title ?? undefined}
             required
           />
 
@@ -62,7 +71,7 @@ export default function PostForm({
             name="excerpt"
             placeholder="Brief summary of the post"
             description="Displayed on the home page and category lists."
-            defaultValue={initialData?.excerpt}
+            defaultValue={initialData?.excerpt ?? undefined}
           />
 
           <Group grow align="flex-start">
@@ -81,7 +90,7 @@ export default function PostForm({
               name="categoryId"
               data={categories.map((c) => ({ value: c.id, label: c.name }))}
               placeholder="Select category"
-              defaultValue={initialData?.categoryId}
+              defaultValue={initialData?.categoryId ?? undefined}
               required
               searchable
             />

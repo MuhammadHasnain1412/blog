@@ -1,16 +1,15 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { useFormStatus } from "react-dom";
 import { createCategory } from "@/lib/actions";
+import { useActionState } from "react";
 import {
-  Button,
   TextInput,
-  Stack,
+  Button,
   Paper,
+  Stack,
   Title,
   Alert,
-  Group,
+  Container,
 } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 
@@ -18,43 +17,37 @@ export default function CreateCategoryPage() {
   const [state, dispatch] = useActionState(createCategory, null);
 
   return (
-    <Paper withBorder p="md" radius="md">
-      <Title order={3} mb="md">
-        Create Category
+    <Container size="sm">
+      <Title order={2} mb="lg">
+        Create New Category
       </Title>
-      <form action={dispatch}>
-        <Stack gap="md">
-          {state?.message && (
-            <Alert
-              icon={<IconAlertCircle size={16} />}
-              title="Error"
-              color="red"
-            >
-              {state.message}
-            </Alert>
-          )}
 
-          <TextInput
-            label="Category Name"
-            name="name"
-            placeholder="e.g. Technology"
-            required
-          />
+      <Paper withBorder p="md" radius="md">
+        <form action={dispatch}>
+          <Stack gap="md">
+            {state?.message && (
+              <Alert
+                icon={<IconAlertCircle size={16} />}
+                title="Error"
+                color="red"
+              >
+                {state.message}
+              </Alert>
+            )}
 
-          <Group justify="flex-end" mt="md">
-            <SubmitButton />
-          </Group>
-        </Stack>
-      </form>
-    </Paper>
-  );
-}
+            <TextInput
+              label="Category Name"
+              name="name"
+              placeholder="e.g. Technology, Health, Lifestyle"
+              required
+            />
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" loading={pending}>
-      Save Category
-    </Button>
+            <Button type="submit" mt="md">
+              Create Category
+            </Button>
+          </Stack>
+        </form>
+      </Paper>
+    </Container>
   );
 }

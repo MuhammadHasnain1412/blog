@@ -1,24 +1,87 @@
+import type { Metadata } from "next";
+import { permanentRedirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import {
-  Container,
-  Title,
-  Text,
-  SimpleGrid,
-  Card,
-  Image,
-  Badge,
-  Stack,
-  Group,
-} from "@mantine/core";
-import Link from "next/link";
+import { Container, Title, Text, SimpleGrid } from "@mantine/core";
 import ArchiveCard from "@/components/common/ArchiveCard";
+import { absoluteUrl } from "@/lib/urls";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
-export default async function ArchivePage() {
+type ArchiveSearchParams = Promise<{
+  q?: string | string[];
+}>;
+
+function hasSearchQuery(value: string | string[] | undefined): boolean {
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  return Array.isArray(value) && value.some((entry) => entry.trim().length > 0);
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: ArchiveSearchParams;
+}): Promise<Metadata> {
+  const { q } = await searchParams;
+  const noindex = hasSearchQuery(q);
+
+  return {
+    title: "Archive",
+    description:
+      "Browse the complete archive of stories published on The Daily Mixa.",
+    alternates: {
+      canonical: absoluteUrl("/archive"),
+    },
+    robots: noindex
+      ? {
+          index: false,
+          follow: true,
+          googleBot: {
+            index: false,
+            follow: true,
+          },
+        }
+      : undefined,
+    openGraph: {
+      title: "Archive — The Daily Mixa",
+      description:
+        "Browse the complete archive of stories published on The Daily Mixa.",
+      url: absoluteUrl("/archive"),
+      type: "website",
+    },
+  };
+}
+
+export default async function ArchivePage({
+  searchParams,
+}: {
+  searchParams: ArchiveSearchParams;
+}) {
+  const { q } = await searchParams;
+
+  if (hasSearchQuery(q)) {
+    permanentRedirect("/archive");
+  }
+
   const posts = await db.post.findMany({
     where: { status: "PUBLISHED" },
-    include: { author: true, category: true },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      excerpt: true,
+      publishedAt: true,
+      createdAt: true,
+      coverImage: true,
+      category: {
+        select: {
+          name: true,
+          slug: true,
+        },
+      },
+    },
     orderBy: { publishedAt: "desc" },
   });
 

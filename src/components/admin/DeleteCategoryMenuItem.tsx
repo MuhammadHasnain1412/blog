@@ -2,7 +2,7 @@
 
 import { Menu, Text } from "@mantine/core";
 import { IconTrash, IconCheck, IconX } from "@tabler/icons-react";
-import { deleteCategory } from "@/lib/actions";
+import { deleteCategory } from "@/lib/actions"; // Assuming this exists
 import { useTransition } from "react";
 import { notifications } from "@mantine/notifications";
 import { modals } from "@mantine/modals";
@@ -22,8 +22,9 @@ export default function DeleteCategoryMenuItem({
       centered: true,
       children: (
         <Text size="sm">
-          Are you sure you want to delete the category <b>"{categoryName}"</b>?
-          This action can only be completed if the category contains no stories.
+          Are you sure you want to delete <b>&quot;{categoryName}&quot;</b>?
+          This will permanently remove the category. Posts in this category will
+          become uncategorized.
         </Text>
       ),
       labels: { confirm: "Delete Category", cancel: "Cancel" },
@@ -38,13 +39,13 @@ export default function DeleteCategoryMenuItem({
           ) {
             notifications.show({
               title: "Category Deleted",
-              message: `"${categoryName}" has been removed.`,
+              message: `&quot;{categoryName}&quot; has been removed.`,
               color: "green",
               icon: <IconCheck size={16} />,
             });
           } else {
             notifications.show({
-              title: "Action Blocked",
+              title: "Error",
               message: result?.message || "Failed to delete category.",
               color: "red",
               icon: <IconX size={16} />,

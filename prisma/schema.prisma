@@ -19,7 +19,8 @@ model category {
   other_category category[] @relation("categoryTocategory")
   post           post[]
 
-  @@index([slug])
+  @@index([parentId])
+  @@index([createdAt(sort: Desc)])
 }
 
 model post {
@@ -44,8 +45,8 @@ model post {
   @@index([status, publishedAt(sort: Desc)])
   @@index([authorId])
   @@index([categoryId])
-  @@index([slug])
   @@index([status, categoryId])
+  @@index([createdAt(sort: Desc)])
 }
 
 model user {
@@ -61,8 +62,6 @@ model user {
 
   posts        post[] @relation("PostAuthor")
   updatedPosts post[] @relation("PostUpdater")
-
-  @@index([email])
 }
 
 enum user_role {

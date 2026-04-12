@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { Group, Text } from "@mantine/core";
-import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type CategorySummary = {
   name: string;
@@ -14,14 +15,13 @@ type Props = {
 };
 
 /**
- * Renders in-page category filters that hide/show sections client-side
- * on the home page. When clicked on other pages, it navigates to the home page
- * and filters.
+ * Renders crawlable category links.
+ * On the home page, clicks are intercepted to filter in-page sections instead
+ * of navigating away.
  */
 export default function CategoryFilterBar({ categories }: Props) {
   const [activeSlug, setActiveSlug] = useState<string>("all");
   const pathname = usePathname();
-  const router = useRouter();
 
   const syncSections = (slug: string) => {
     const sections = document.querySelectorAll<HTMLElement>(
@@ -61,63 +61,76 @@ export default function CategoryFilterBar({ categories }: Props) {
     }
   }, [activeSlug, pathname]);
 
-  useEffect(() => {
-    if (pathname === "/") {
-      const pending = sessionStorage.getItem("pendingCategoryFilter");
-      if (pending) {
-        sessionStorage.removeItem("pendingCategoryFilter");
-        setTimeout(() => scrollToSlug(pending), 100);
-      } else {
-        syncSections(activeSlug);
-      }
-    } else {
-      setActiveSlug("");
+  const handleSelect = (
+    slug: string,
+    event: MouseEvent<HTMLAnchorElement>,
+  ) => {
+    if (pathname !== "/") {
+      return;
     }
-  }, [pathname]);
 
-  const handleSelect = (slug: string) => {
-    if (pathname === "/") {
-      scrollToSlug(slug);
-    } else {
-      sessionStorage.setItem("pendingCategoryFilter", slug);
-      router.push("/");
-    }
+    event.preventDefault();
+    scrollToSlug(slug);
   };
 
   if (categories.length === 0) return null;
 
   return (
     <Group gap="xl" h={50} justify="center" wrap="nowrap">
-      <Text
-        fw={700}
-        size="sm"
-        tt="uppercase"
-        style={{
-          whiteSpace: "nowrap",
-          cursor: "pointer",
-          color: activeSlug === "all" ? "#000" : "#888",
-        }}
-        onClick={() => handleSelect("all")}
-        className="hover-dark"
+      <Link
+        href="/"
+        onClick={(event) => handleSelect("all", event)}
+        style={{ textDecoration: "none", color: "inherit" }}
       >
-        HOME
-      </Text>
-      {categories.map((category) => (
         <Text
-          key={category.slug}
+          component="span"
           fw={700}
           size="sm"
           tt="uppercase"
           style={{
             whiteSpace: "nowrap",
             cursor: "pointer",
-            color: activeSlug === category.slug ? "#000" : "#888",
+            color:
+              pathname === "/" && activeSlug === "all"
+                ? "#000"
+                : pathname === "/"
+                  ? "#888"
+                  : "#000",
           }}
-          onClick={() => handleSelect(category.slug)}
           className="hover-dark"
         >
-          {category.name}
+          HOME
         </Text>
+      </Link>
+      {categories.map((category) => (
+        <Link
+          key={category.slug}
+          href={`/${category.slug}`}
+          onClick={(event) => handleSelect(category.slug, event)}
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          <Text
+            component="span"
+            fw={700}
+            size="sm"
+            tt="uppercase"
+            style={{
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+              color:
+                pathname === "/"
+                  ? activeSlug === category.slug
+                    ? "#000"
+                    : "#888"
+                  : pathname === `/${category.slug}`
+                    ? "#000"
+                    : "#888",
+            }}
+            className="hover-dark"
+          >
+            {category.name}
+          </Text>
+        </Link>
       ))}
     </Group>
   );

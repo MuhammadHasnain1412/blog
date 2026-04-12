@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { db } from "@/lib/prisma";
 import {
   Container,
@@ -17,12 +18,21 @@ import {
 } from "@mantine/core";
 import Link from "next/link";
 // Refreshing TS module resolution
-import { postUrl } from "@/lib/urls";
+import { absoluteUrl, postUrl } from "@/lib/urls";
 
 // ✅ Revalidate every 60 seconds instead of force-dynamic
 // The home page doesn't need a fresh DB query on every single request —
 // a 60-second cache means 60x fewer DB queries under load
 export const revalidate = 60;
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: absoluteUrl("/"),
+  },
+  openGraph: {
+    url: absoluteUrl("/"),
+  },
+};
 
 // ── Page shell ────────────────────────────────────────────────────────────────
 // Renders immediately — Suspense streams the DB-heavy sections in behind it
@@ -110,7 +120,7 @@ async function PostSections() {
         <Stack align="center" gap="xl">
           <SectionHeader title="Welcome to The Daily Mixa" />
           <Text c="dimmed" ta="center" size="lg" maw={500}>
-            We're currently preparing our latest stories. Check back soon for
+            We&apos;re currently preparing our latest stories. Check back soon for
             updates on World News, Celebrity insights, and more.
           </Text>
         </Stack>
