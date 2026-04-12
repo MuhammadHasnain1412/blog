@@ -115,9 +115,9 @@ export const createPost = createSafeAction(
           crypto.randomUUID() + extname(file.name).toLowerCase();
         coverImage = await uploadToS3(`uploads/${uniqueName}`, file);
       } catch (err) {
-        console.error("[createPost] upload error:", err);
-        const msg = err instanceof Error ? err.message : "Image upload failed.";
-        throw new Error(msg);
+        console.error("[createPost] Image upload skipped or failed:", err);
+        // We don't throw here so the user can still save the text content
+        // even if image storage is not configured yet.
       }
     }
 
@@ -263,9 +263,7 @@ export const updatePost = createSafeAction(
           crypto.randomUUID() + extname(file.name).toLowerCase();
         coverImage = await uploadToS3(`uploads/${uniqueName}`, file);
       } catch (err) {
-        console.error("[updatePost] upload error:", err);
-        const msg = err instanceof Error ? err.message : "Image upload failed.";
-        throw new Error(msg);
+        console.error("[updatePost] Image upload skipped or failed:", err);
       }
     }
 
