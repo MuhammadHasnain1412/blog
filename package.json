@@ -8,8 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx scripts/seed.ts",
-    "postinstall": "prisma generate",
-    "postbuild": "next-sitemap"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.995.0",
@@ -43,7 +42,6 @@
     "isomorphic-dompurify": "^3.0.0",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
-    "next-sitemap": "^4.2.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "zod": "^4.3.6"
