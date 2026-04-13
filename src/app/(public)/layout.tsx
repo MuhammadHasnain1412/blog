@@ -16,11 +16,16 @@ export default async function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const categories = await db.category.findMany({
-    where: { post: { some: { status: "PUBLISHED" } } },
-    select: { name: true, slug: true },
-    orderBy: { name: "asc" },
-  });
+  let categories: { name: string; slug: string }[] = [];
+  try {
+    categories = await db.category.findMany({
+      where: { post: { some: { status: "PUBLISHED" } } },
+      select: { name: true, slug: true },
+      orderBy: { name: "asc" },
+    });
+  } catch {
+    // DB unavailable during build
+  }
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
