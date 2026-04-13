@@ -3,6 +3,8 @@ import { db } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/urls";
 
 export const revalidate = 3600; // Regenerate sitemap every hour
+export const dynamic = "force-dynamic"; // ← add this line
+
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
