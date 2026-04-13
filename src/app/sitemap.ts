@@ -2,9 +2,8 @@ import type { MetadataRoute } from "next";
 import { db } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/urls";
 
-export const revalidate = 3600; // Regenerate sitemap every hour
-export const dynamic = "force-dynamic"; // ← add this line
-
+export const dynamic = "force-dynamic"; // Generate on every request
+// Remove: export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
@@ -42,8 +41,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     return [...staticPages, ...categoryPages, ...postPages];
   } catch (error) {
-    // DB not available during build — return static pages only
-    console.warn("Sitemap: DB unavailable, returning static pages only");
+    // DB not available — return static pages only
+    console.warn("Sitemap: DB unavailable, returning static pages only", error);
     return staticPages;
   }
 }
