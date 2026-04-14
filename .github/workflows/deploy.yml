@@ -29,7 +29,7 @@ jobs:
       - name: Build Next.js
         run: npm run build
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ""
           AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
           AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}

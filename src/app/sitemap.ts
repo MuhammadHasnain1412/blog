@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 import { db } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/urls";
 
-export const dynamic = "force-dynamic"; // Generate on every request
-// Remove: export const revalidate = 3600;
+// export const dynamic = "force-dynamic"; // Generate on every request
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
@@ -27,19 +27,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { status: "PUBLISHED" },
       select: { slug: true, updatedAt: true, publishedAt: true },
       orderBy: { publishedAt: "desc" },
+      take: 5000,
     });
 
-    const categoryPages: MetadataRoute.Sitemap = categories.map((category) => ({
+    const categoryPages = categories.map((category) => ({
       url: absoluteUrl(`/${category.slug}`),
       lastModified: category.updatedAt,
-      changeFrequency: "daily",
+      changeFrequency: "daily" as const,
       priority: 0.7,
     }));
 
-    const postPages: MetadataRoute.Sitemap = posts.map((post) => ({
+    const postPages = posts.map((post) => ({
       url: absoluteUrl(`/posts/${post.slug}`),
       lastModified: post.updatedAt ?? post.publishedAt ?? new Date(),
-      changeFrequency: "weekly",
+      changeFrequency: "weekly" as const,
       priority: 0.9,
     }));
 
