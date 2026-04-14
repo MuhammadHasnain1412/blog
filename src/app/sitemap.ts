@@ -13,6 +13,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/contact"), changeFrequency: "monthly", priority: 0.4 },
   ];
 
+  if (process.env.CI) {
+    return staticPages;
+  }
+
   try {
     const categories = await db.category.findMany({
       where: { post: { some: { status: "PUBLISHED" } } },
