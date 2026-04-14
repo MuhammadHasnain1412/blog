@@ -54,6 +54,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /var/www/thedailymixa
+            rm -f public/robots.txt
+            rm -f public/sitemap.xml
+            rm -f public/sitemap-*.xml
             npm ci --omit=dev
             npx prisma generate
             pm2 restart all

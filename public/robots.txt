@@ -1,9 +1,0 @@
-# *
-User-agent: *
-Allow: /
-
-# Host
-Host: https://thedailymixa.com
-
-# Sitemaps
-Sitemap: https://thedailymixa.com/sitemap.xml
