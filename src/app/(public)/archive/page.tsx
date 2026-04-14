@@ -5,7 +5,7 @@ import { Container, Title, Text, SimpleGrid } from "@mantine/core";
 import ArchiveCard from "@/components/common/ArchiveCard";
 import { absoluteUrl } from "@/lib/urls";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 type ArchiveSearchParams = Promise<{
   q?: string | string[];

@@ -18,7 +18,7 @@ import { postUrl } from "@/lib/urls";
 import { db } from "@/lib/prisma";
 
 // ✅ Revalidate every 60 seconds — category pages don't change per-request
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 // ── Metadata + canonical ──────────────────────────────────────────────────────
 

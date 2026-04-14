@@ -1,21 +1,9 @@
-/**
- * Legacy URL redirect.
- *
- * Old canonical: /{categorySlug}/{postSlug}
- * New canonical: /posts/{postSlug}
- *
- * Returns HTTP 301 (permanent redirect) so:
- * - Search engines transfer all existing link equity to the new URL
- * - Browsers and crawlers update their records automatically
- * - Old bookmarks and external links still work forever
- *
- * The categorySlug is intentionally ignored - posts no longer
- * include the category in the URL so they can be freely recategorized.
- */
-
 import { redirect, notFound } from "next/navigation";
 import { postUrl } from "@/lib/urls";
 import { db } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+
 
 export default async function LegacyPostRedirect({
   params,

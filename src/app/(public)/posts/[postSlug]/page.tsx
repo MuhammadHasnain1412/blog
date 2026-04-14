@@ -15,8 +15,7 @@ import { absolutePostUrl, absoluteUrl } from "@/lib/urls";
 import DOMPurify from "isomorphic-dompurify";
 import { JSDOM } from "jsdom";
 
-// ✅ ISR: Revalidate this page every hour (3600 seconds)
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

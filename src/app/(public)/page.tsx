@@ -23,7 +23,7 @@ import { absoluteUrl, postUrl } from "@/lib/urls";
 // ✅ Revalidate every 60 seconds instead of force-dynamic
 // The home page doesn't need a fresh DB query on every single request —
 // a 60-second cache means 60x fewer DB queries under load
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   alternates: {
