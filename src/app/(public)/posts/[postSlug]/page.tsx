@@ -118,7 +118,7 @@ export default async function BlogPostPage({
       name: "The Daily Mixa",
       logo: {
         "@type": "ImageObject",
-        url: absoluteUrl("/logo.png"),
+        url: absoluteUrl("/icon.svg"),
       },
     },
     ...(post.coverImage && {

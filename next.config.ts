@@ -4,6 +4,15 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   compress: true,
+  async redirects() {
+    return [
+      {
+        source: "/sitemap-0.xml",
+        destination: "/sitemap.xml",
+        permanent: true,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
