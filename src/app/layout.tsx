@@ -46,7 +46,11 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "@thedailymixa",
   },
-  // ✅ Default indexing rules — individual pages can override
+  alternates: {
+    types: {
+      "application/rss+xml": `${BASE_URL}/feed.xml`,
+    },
+  },
   robots: {
     index: true,
     follow: true,

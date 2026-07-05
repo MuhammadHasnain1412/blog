@@ -14,11 +14,10 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { postUrl } from "@/lib/urls";
+import { postUrl, absoluteUrl, absolutePostUrl } from "@/lib/urls";
 import { db } from "@/lib/prisma";
 
-// ✅ Revalidate every 60 seconds — category pages don't change per-request
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 // ── Metadata + canonical ──────────────────────────────────────────────────────
 
@@ -92,8 +91,53 @@ export default async function CategoryPage({
     return notFound();
   }
 
+  const baseUrl = process.env.NEXTAUTH_URL ?? "https://thedailymixa.com";
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: absoluteUrl("/"),
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: category.name,
+      },
+    ],
+  };
+
+  const collectionSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: category.name,
+    url: `${baseUrl}/${categorySlug}`,
+    description: `Browse all ${category.name} stories on The Daily Mixa.`,
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: category.post.slice(0, 10).map((post, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: absolutePostUrl(post.slug),
+        name: post.title,
+      })),
+    },
+  };
+
   return (
     <Container size="xl" py={60}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+      />
       <Stack gap="xl">
         <Stack gap="xs" align="center">
           <Badge color="dark" size="lg" radius="xs">

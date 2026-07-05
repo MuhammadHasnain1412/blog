@@ -133,14 +133,19 @@ export const createPost = createSafeAction(
       FORBID_ATTR: ["onerror", "onload", "onmouseover"],
     });
 
-    const slug = title
+    const baseSlug = title
       .toLowerCase()
       .trim()
       .replace(/[^\w\s-]/g, "")
       .replace(/[\s_-]+/g, "-")
       .replace(/^-+|-+$/g, "");
 
-    const uniqueSlug = `${slug}-${Date.now()}`;
+    let uniqueSlug = baseSlug;
+    let counter = 0;
+    while (await db.post.findUnique({ where: { slug: uniqueSlug }, select: { id: true } })) {
+      counter++;
+      uniqueSlug = `${baseSlug}-${counter}`;
+    }
 
     // RBAC check
     if (status === post_status.PUBLISHED && !canPublish(userRole)) {

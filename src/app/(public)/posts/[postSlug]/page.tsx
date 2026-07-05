@@ -15,7 +15,7 @@ import { absolutePostUrl, absoluteUrl } from "@/lib/urls";
 import DOMPurify from "isomorphic-dompurify";
 import { JSDOM } from "jsdom";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 export async function generateMetadata({
   params,
@@ -39,7 +39,7 @@ export async function generateMetadata({
   if (!post) return { title: "Not Found" };
 
   const canonicalUrl = absolutePostUrl(postSlug);
-  const ogImage = post.coverImage || absoluteUrl("/og-default.jpg");
+  const ogImage = post.coverImage || absoluteUrl("/icon.svg");
 
   return {
     title: post.title,
@@ -90,7 +90,7 @@ export default async function BlogPostPage({
       createdAt: true,
       updatedAt: true,
       author: { select: { name: true } },
-      category: { select: { name: true } },
+      category: { select: { name: true, slug: true } },
     },
   });
 
@@ -100,7 +100,34 @@ export default async function BlogPostPage({
 
   const canonicalUrl = absolutePostUrl(postSlug);
 
-  // ── Article JSON-LD schema ───────────────────────────────────────────────────
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: absoluteUrl("/"),
+      },
+      ...(post.category?.name
+        ? [
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: post.category.name,
+              item: absoluteUrl(`/${post.category.slug}`),
+            },
+          ]
+        : []),
+      {
+        "@type": "ListItem",
+        position: post.category?.name ? 3 : 2,
+        name: post.title,
+      },
+    ],
+  };
+
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -142,7 +169,10 @@ export default async function BlogPostPage({
 
   return (
     <article>
-      {/* ✅ Article JSON-LD — Essential for SEO author cards and rich results */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}

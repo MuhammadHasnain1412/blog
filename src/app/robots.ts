@@ -8,11 +8,9 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        // ✅ Block admin and API routes from being crawled
-        disallow: ["/dashboard/", "/api/"],
+        disallow: ["/dashboard/", "/api/", "/status", "/login"],
       },
     ],
-    // ✅ Point Googlebot to the production sitemap URL directly
     sitemap: `${BASE_URL}/sitemap.xml`,
     host: BASE_URL,
   };

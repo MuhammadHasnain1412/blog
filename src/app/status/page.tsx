@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   Container,
   Title,
@@ -9,6 +10,10 @@ import {
 } from "@mantine/core";
 import { IconCheck, IconRocket } from "@tabler/icons-react";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default function Home() {
   return (

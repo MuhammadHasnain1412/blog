@@ -2,12 +2,13 @@ import type { MetadataRoute } from "next";
 import { db } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/urls";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const now = new Date();
   const staticPages: MetadataRoute.Sitemap = [
-    { url: absoluteUrl("/"), changeFrequency: "hourly", priority: 1 },
-    { url: absoluteUrl("/archive"), changeFrequency: "daily", priority: 0.8 },
+    { url: absoluteUrl("/"), lastModified: now, changeFrequency: "hourly", priority: 1 },
+    { url: absoluteUrl("/archive"), lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: absoluteUrl("/about"), changeFrequency: "monthly", priority: 0.5 },
     { url: absoluteUrl("/contact"), changeFrequency: "monthly", priority: 0.4 },
   ];
