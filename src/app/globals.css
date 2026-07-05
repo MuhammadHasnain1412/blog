@@ -52,6 +52,59 @@ th {
   border-bottom: none;
 }
 
+/* TipTap Table Styles */
+.mantine-RichTextEditor-root table,
+.mantine-TypographyStylesProvider-root table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  overflow-x: auto;
+  display: table;
+}
+
+.mantine-RichTextEditor-root th,
+.mantine-RichTextEditor-root td,
+.mantine-TypographyStylesProvider-root th,
+.mantine-TypographyStylesProvider-root td {
+  border: 1px solid #dee2e6;
+  padding: 0.5rem 0.75rem;
+  min-width: 80px;
+  vertical-align: top;
+}
+
+.mantine-RichTextEditor-root th,
+.mantine-TypographyStylesProvider-root th {
+  background-color: #f8f9fa;
+  font-weight: 700;
+}
+
+.mantine-RichTextEditor-root .selectedCell {
+  background-color: #e7f5ff;
+}
+
+.mantine-RichTextEditor-root .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #228be6;
+  cursor: col-resize;
+}
+
+/* TipTap Editor Image Styles */
+.mantine-RichTextEditor-root img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.mantine-TypographyStylesProvider-root img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
 /* Custom scrollbar for horizontal nav */
 ::-webkit-scrollbar {
   height: 4px;

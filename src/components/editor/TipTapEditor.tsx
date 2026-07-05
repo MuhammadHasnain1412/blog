@@ -12,7 +12,22 @@ import Highlight from "@tiptap/extension-highlight";
 import Color from "@tiptap/extension-color";
 import { TextStyle } from "@tiptap/extension-text-style";
 import Image from "@tiptap/extension-image";
-import { useEffect } from "react";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { useEffect, useRef, useState } from "react";
+import { notifications } from "@mantine/notifications";
+import {
+  IconPhoto,
+  IconUpload,
+  IconTablePlus,
+  IconColumnInsertRight,
+  IconColumnRemove,
+  IconRowInsertBottom,
+  IconRowRemove,
+  IconTableOff,
+} from "@tabler/icons-react";
 
 export default function TipTapEditor({
   value,
@@ -21,6 +36,9 @@ export default function TipTapEditor({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -33,6 +51,10 @@ export default function TipTapEditor({
       Color,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Image,
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableCell,
+      TableHeader,
     ],
     content: value,
     immediatelyRender: false,
@@ -50,8 +72,65 @@ export default function TipTapEditor({
     }
   }, [value, editor]);
 
+  const addImageByUrl = () => {
+    const url = window.prompt("Image URL darj karein:");
+    if (url) {
+      editor?.chain().focus().setImage({ src: url }).run();
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        notifications.show({
+          title: "Upload failed",
+          message: data.error || "Image upload nahi ho saki.",
+          color: "red",
+        });
+        return;
+      }
+
+      editor?.chain().focus().setImage({ src: data.url }).run();
+    } catch {
+      notifications.show({
+        title: "Upload failed",
+        message: "Kuch galat ho gaya. Dobara try karein.",
+        color: "red",
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const insertTable = () => {
+    editor
+      ?.chain()
+      .focus()
+      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+      .run();
+  };
+
   return (
     <RichTextEditor editor={editor}>
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        style={{ display: "none" }}
+        onChange={handleFileUpload}
+      />
+
       <RichTextEditor.Toolbar sticky stickyOffset={60}>
         <RichTextEditor.ControlsGroup>
           <RichTextEditor.Bold />
@@ -110,6 +189,79 @@ export default function TipTapEditor({
               "#fd7e14",
             ]}
           />
+        </RichTextEditor.ControlsGroup>
+
+        <RichTextEditor.ControlsGroup>
+          <RichTextEditor.Control
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Upload image"
+            title="Device se image upload karein"
+            disabled={uploading}
+          >
+            <IconUpload size={16} stroke={1.5} />
+          </RichTextEditor.Control>
+          <RichTextEditor.Control
+            onClick={addImageByUrl}
+            aria-label="Insert image by URL"
+            title="URL se image add karein"
+          >
+            <IconPhoto size={16} stroke={1.5} />
+          </RichTextEditor.Control>
+        </RichTextEditor.ControlsGroup>
+
+        <RichTextEditor.ControlsGroup>
+          <RichTextEditor.Control
+            onClick={insertTable}
+            aria-label="Insert table"
+            title="Table add karein"
+          >
+            <IconTablePlus size={16} stroke={1.5} />
+          </RichTextEditor.Control>
+          <RichTextEditor.Control
+            onClick={() =>
+              editor?.chain().focus().addColumnAfter().run()
+            }
+            aria-label="Add column"
+            title="Column add karein"
+          >
+            <IconColumnInsertRight size={16} stroke={1.5} />
+          </RichTextEditor.Control>
+          <RichTextEditor.Control
+            onClick={() =>
+              editor?.chain().focus().deleteColumn().run()
+            }
+            aria-label="Remove column"
+            title="Column hatayein"
+          >
+            <IconColumnRemove size={16} stroke={1.5} />
+          </RichTextEditor.Control>
+          <RichTextEditor.Control
+            onClick={() =>
+              editor?.chain().focus().addRowAfter().run()
+            }
+            aria-label="Add row"
+            title="Row add karein"
+          >
+            <IconRowInsertBottom size={16} stroke={1.5} />
+          </RichTextEditor.Control>
+          <RichTextEditor.Control
+            onClick={() =>
+              editor?.chain().focus().deleteRow().run()
+            }
+            aria-label="Remove row"
+            title="Row hatayein"
+          >
+            <IconRowRemove size={16} stroke={1.5} />
+          </RichTextEditor.Control>
+          <RichTextEditor.Control
+            onClick={() =>
+              editor?.chain().focus().deleteTable().run()
+            }
+            aria-label="Remove table"
+            title="Table hatayein"
+          >
+            <IconTableOff size={16} stroke={1.5} />
+          </RichTextEditor.Control>
         </RichTextEditor.ControlsGroup>
       </RichTextEditor.Toolbar>
 
