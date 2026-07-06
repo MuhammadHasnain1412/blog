@@ -10,39 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install MySQL client
-        run: sudo apt-get update && sudo apt-get install -y mysql-client
+      - name: Dump database and upload to S3
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
+            BACKUP_FILE="thedailymixa_${TIMESTAMP}.sql.gz"
 
-      - name: Dump database
-        run: |
-          TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
-          mysqldump -h ${{ secrets.DB_HOST }} \
-            -u ${{ secrets.DB_USER }} \
-            -p'${{ secrets.DB_PASSWORD }}' \
-            ${{ secrets.DB_NAME }} \
-            --single-transaction \
-            --routines \
-            --triggers | gzip > "thedailymixa_${TIMESTAMP}.sql.gz"
-          echo "BACKUP_FILE=thedailymixa_${TIMESTAMP}.sql.gz" >> $GITHUB_ENV
+            DB_URL=$(grep DATABASE_URL /var/www/thedailymixa/.env | cut -d= -f2-)
+            DB_USER=$(echo "$DB_URL" | sed -n 's|mysql://\([^:]*\):.*|\1|p')
+            DB_PASS=$(echo "$DB_URL" | sed -n 's|mysql://[^:]*:\([^@]*\)@.*|\1|p')
+            DB_NAME=$(echo "$DB_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
 
-      - name: Upload to S3
-        run: |
-          aws s3 cp "${{ env.BACKUP_FILE }}" \
-            "s3://${{ secrets.AWS_S3_BUCKET_NAME }}/backups/${{ env.BACKUP_FILE }}"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_S3_REGION }}
-
-      - name: Clean up old backups (keep last 30)
-        run: |
-          aws s3 ls "s3://${{ secrets.AWS_S3_BUCKET_NAME }}/backups/" \
-            | sort | head -n -30 \
-            | awk '{print $4}' \
-            | while read file; do
-                aws s3 rm "s3://${{ secrets.AWS_S3_BUCKET_NAME }}/backups/$file"
-              done
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_S3_REGION }}
+            mysqldump -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" --single-transaction --routines --triggers | gzip > "/tmp/${BACKUP_FILE}"
+            aws s3 cp "/tmp/${BACKUP_FILE}" "s3://${{ secrets.AWS_S3_BUCKET_NAME }}/backups/${BACKUP_FILE}"
+            aws s3 ls "s3://${{ secrets.AWS_S3_BUCKET_NAME }}/backups/" | sort | head -n -30 | awk '{print $4}' | while read file; do
+              aws s3 rm "s3://${{ secrets.AWS_S3_BUCKET_NAME }}/backups/$file"
+            done
+            rm -f "/tmp/${BACKUP_FILE}"
