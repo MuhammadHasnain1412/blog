@@ -27,7 +27,7 @@ export default auth(function middleware(req: NextRequest) {
   const csp = [
     `default-src 'self'`,
     // ✅ Added googletagmanager.com for GA4 script loading
-    `script-src 'self' 'nonce-${nonce}' https://www.googletagmanager.com${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://www.googletagmanager.com${isDev ? " 'unsafe-eval'" : ""}`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
     // ✅ Added google-analytics.com for GA4 image pings
