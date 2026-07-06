@@ -11,6 +11,7 @@ import {
   Paper,
   Alert,
   Group,
+  SimpleGrid,
   Input,
   FileInput,
 } from "@mantine/core";
@@ -74,7 +75,7 @@ export default function PostForm({
             defaultValue={initialData?.excerpt ?? undefined}
           />
 
-          <Group grow align="flex-start">
+          <SimpleGrid cols={{ base: 1, sm: 3 }}>
             <FileInput
               label="Cover Image"
               name="coverImage"
@@ -102,7 +103,7 @@ export default function PostForm({
               data={["DRAFT", "PUBLISHED", "ARCHIVED"]}
               required
             />
-          </Group>
+          </SimpleGrid>
 
           <Input.Wrapper
             label="Content"

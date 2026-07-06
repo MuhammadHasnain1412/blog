@@ -20,7 +20,7 @@ model category {
   post           post[]
 
   @@index([parentId])
-  @@index([createdAt(sort: Desc)])
+  @@index([createdAt])
 }
 
 model post {
@@ -37,16 +37,16 @@ model post {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   publishedAt     DateTime?
+  author          user        @relation("PostAuthor", fields: [authorId], references: [id], map: "Post_authorId_fkey")
+  category        category    @relation(fields: [categoryId], references: [id], map: "Post_categoryId_fkey")
+  lastUpdater     user?       @relation("PostUpdater", fields: [lastUpdatedById], references: [id], map: "Post_lastUpdatedById_fkey")
 
-  author      user     @relation("PostAuthor", fields: [authorId], references: [id], map: "Post_authorId_fkey")
-  lastUpdater user?    @relation("PostUpdater", fields: [lastUpdatedById], references: [id], map: "Post_lastUpdatedById_fkey")
-  category    category @relation(fields: [categoryId], references: [id], map: "Post_categoryId_fkey")
-
-  @@index([status, publishedAt(sort: Desc)])
+  @@index([status, publishedAt])
   @@index([authorId])
   @@index([categoryId])
   @@index([status, categoryId])
-  @@index([createdAt(sort: Desc)])
+  @@index([createdAt])
+  @@index([lastUpdatedById], map: "Post_lastUpdatedById_fkey")
 }
 
 model user {
@@ -59,9 +59,8 @@ model user {
   avatarUrl    String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-
-  posts        post[] @relation("PostAuthor")
-  updatedPosts post[] @relation("PostUpdater")
+  posts        post[]    @relation("PostAuthor")
+  updatedPosts post[]    @relation("PostUpdater")
 }
 
 enum user_role {
