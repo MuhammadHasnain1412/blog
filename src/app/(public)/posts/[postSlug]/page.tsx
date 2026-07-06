@@ -121,7 +121,7 @@ export default async function BlogPostPage({
         where: {
           status: "PUBLISHED",
           slug: { not: postSlug },
-          category: { id: post.category.id },
+          categoryId: post.category.id,
         },
         select: {
           title: true,
