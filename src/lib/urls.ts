@@ -5,7 +5,7 @@
  * structure ever changes again, you update it in one place only.
  */
 
-const BASE_URL = process.env.NEXTAUTH_URL ?? "https://thedailymixa.com";
+const BASE_URL = process.env.NEXTAUTH_URL ?? "https://www.thedailymixa.com";
 
 /** /posts/my-post-slug */
 export function postUrl(slug: string): string {
