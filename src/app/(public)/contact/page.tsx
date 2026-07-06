@@ -3,19 +3,12 @@ import {
   Container,
   Title,
   Text,
-  Button,
   Group,
   SimpleGrid,
   Box,
-  Divider,
 } from "@mantine/core";
 import ContactForm from "./ContactForm";
-import {
-  IconMail,
-  IconBrandTwitter,
-  IconBrandYoutube,
-  IconBrandInstagram,
-} from "@tabler/icons-react";
+import { IconMail } from "@tabler/icons-react";
 import { absoluteUrl } from "@/lib/urls";
 
 type ContactIconComponent = typeof IconMail;
@@ -72,13 +65,6 @@ export default function ContactPage() {
             />
           </SimpleGrid>
 
-          <Divider my="xl" />
-
-          <Group>
-            <ActionIconWithLink icon={IconBrandTwitter} size={24} href="https://twitter.com/thedailymixa" />
-            <ActionIconWithLink icon={IconBrandYoutube} size={24} href="https://youtube.com/@thedailymixa" />
-            <ActionIconWithLink icon={IconBrandInstagram} size={24} href="https://instagram.com/thedailymixa" />
-          </Group>
         </Box>
       </SimpleGrid>
     </Container>
@@ -114,32 +100,5 @@ function ContactIcon({
         </div>
       </Group>
     </div>
-  );
-}
-
-function ActionIconWithLink({
-  icon: Icon,
-  size,
-  href,
-}: {
-  icon: ContactIconComponent;
-  size: number;
-  href: string;
-}) {
-  return (
-    <Button
-      component="a"
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      variant="outline"
-      color="gray"
-      radius="xl"
-      size="md"
-      px={10}
-      style={{ border: "1px solid #eee" }}
-    >
-      <Icon size={size} stroke={1.5} />
-    </Button>
   );
 }

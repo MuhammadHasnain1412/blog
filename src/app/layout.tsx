@@ -90,11 +90,6 @@ export default async function RootLayout({
     name: "The Daily Mixa",
     url: BASE_URL,
     logo: `${BASE_URL}/icon.svg`,
-    sameAs: [
-      "https://twitter.com/thedailymixa",
-      "https://instagram.com/thedailymixa",
-      "https://youtube.com/@thedailymixa",
-    ],
     contactPoint: {
       "@type": "ContactPoint",
       email: "thedailymixa@gmail.com",
