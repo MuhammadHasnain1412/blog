@@ -3,15 +3,13 @@ import {
   Container,
   Title,
   Text,
-  TextInput,
-  Textarea,
   Button,
   Group,
   SimpleGrid,
-  Paper,
   Box,
   Divider,
 } from "@mantine/core";
+import ContactForm from "./ContactForm";
 import {
   IconMail,
   IconBrandTwitter,
@@ -54,37 +52,7 @@ export default function ContactPage() {
 
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing={50}>
         {/* Contact Form Section */}
-        <Paper withBorder shadow="md" p={30} radius="md">
-          <Title order={2} size="h3" mb="lg">
-            Send us a message
-          </Title>
-          <form action="#">
-            <SimpleGrid cols={{ base: 1, sm: 2 }} mt="xl">
-              <TextInput label="Name" placeholder="Your name" required />
-              <TextInput label="Email" placeholder="your@email.com" required />
-            </SimpleGrid>
-
-            <TextInput
-              label="Subject"
-              placeholder="Inquiry subject"
-              mt="md"
-              required
-            />
-            <Textarea
-              mt="md"
-              label="Message"
-              placeholder="Your message"
-              minRows={5}
-              required
-            />
-
-            <Group justify="flex-end" mt="xl">
-              <Button type="submit" size="md" color="dark">
-                Send message
-              </Button>
-            </Group>
-          </form>
-        </Paper>
+        <ContactForm />
 
         {/* Contact Info Section */}
         <Box>
