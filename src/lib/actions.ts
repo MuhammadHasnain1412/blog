@@ -11,7 +11,7 @@ import { z } from "zod";
 import { post_status, user_role } from "@prisma/client";
 import { headers } from "next/headers";
 import { loginLimiter, uploadLimiter } from "@/lib/rate-limit";
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 import { createSafeAction } from "@/lib/safe-action";
 import { assertS3Configured } from "@/lib/env";
 import { uploadToS3 } from "@/lib/s3";
@@ -127,10 +127,10 @@ export const createPost = createSafeAction(
     const userRole = (await db.user.findUnique({ where: { id: userId } }))
       ?.role as user_role;
 
-    const cleanContent = DOMPurify.sanitize(content, {
-      USE_PROFILES: { html: true },
-      FORBID_TAGS: ["style", "script", "iframe", "form", "object"],
-      FORBID_ATTR: ["onerror", "onload", "onmouseover"],
+    const cleanContent = sanitizeHtml(content, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "h1", "h2", "span"]),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, img: ["src", "alt", "width", "height"] },
+      disallowedTagsMode: "discard",
     });
 
     const baseSlug = title
@@ -281,10 +281,10 @@ export const updatePost = createSafeAction(
       }
     }
 
-    const cleanContent = DOMPurify.sanitize(content, {
-      USE_PROFILES: { html: true },
-      FORBID_TAGS: ["style", "script", "iframe", "form", "object"],
-      FORBID_ATTR: ["onerror", "onload", "onmouseover"],
+    const cleanContent = sanitizeHtml(content, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "h1", "h2", "span"]),
+      allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, img: ["src", "alt", "width", "height"] },
+      disallowedTagsMode: "discard",
     });
 
     try {

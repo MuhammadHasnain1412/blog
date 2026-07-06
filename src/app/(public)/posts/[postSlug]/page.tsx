@@ -12,8 +12,7 @@ import {
 } from "@mantine/core";
 import { notFound } from "next/navigation";
 import { absolutePostUrl, absoluteUrl } from "@/lib/urls";
-import DOMPurify from "isomorphic-dompurify";
-import { JSDOM } from "jsdom";
+import sanitizeHtml from "sanitize-html";
 
 export const revalidate = 120;
 
@@ -160,10 +159,10 @@ export default async function BlogPostPage({
     },
   };
 
-  const cleanHTML = DOMPurify.sanitize(post.content, {
-    USE_PROFILES: { html: true },
-    FORBID_TAGS: ["style", "script", "iframe", "form", "object"],
-    FORBID_ATTR: ["onerror", "onload", "onmouseover"],
+  const cleanHTML = sanitizeHtml(post.content, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "h1", "h2", "span"]),
+    allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, img: ["src", "alt", "width", "height"] },
+    disallowedTagsMode: "discard",
   });
   const normalizedHTML = normalizeArticleLinks(cleanHTML);
 
@@ -244,39 +243,32 @@ export default async function BlogPostPage({
 }
 
 function normalizeArticleLinks(html: string): string {
-  const dom = new JSDOM(`<body>${html}</body>`);
   const siteOrigin = new URL(absoluteUrl("/")).origin;
-  const anchors = dom.window.document.querySelectorAll("a[href]");
 
-  Array.from(anchors).forEach((node) => {
-    const anchor = node as Element;
-    const href = anchor.getAttribute("href");
-
-    if (!href) return;
+  return html.replace(/<a\s([^>]*?)>/gi, (match, attrs: string) => {
+    const hrefMatch = attrs.match(/href=["']([^"']*)["']/);
+    if (!hrefMatch) return match;
 
     try {
-      const url = new URL(href, absoluteUrl("/"));
-      if (url.origin !== siteOrigin) return;
+      const url = new URL(hrefMatch[1], absoluteUrl("/"));
+      if (url.origin !== siteOrigin) return match;
 
+      const relMatch = attrs.match(/rel=["']([^"']*)["']/);
       const relValues = new Set(
-        (anchor.getAttribute("rel") ?? "")
-          .split(/\s+/)
-          .filter(Boolean)
-          .map((value) => value.toLowerCase()),
+        (relMatch?.[1] ?? "").split(/\s+/).filter(Boolean).map(v => v.toLowerCase())
       );
-
       relValues.delete("nofollow");
 
       if (relValues.size === 0) {
-        anchor.removeAttribute("rel");
-        return;
+        return `<a ${attrs.replace(/\s*rel=["'][^"']*["']/i, "")}>`;
       }
-
-      anchor.setAttribute("rel", Array.from(relValues).join(" "));
+      const newRel = Array.from(relValues).join(" ");
+      if (relMatch) {
+        return `<a ${attrs.replace(/rel=["'][^"']*["']/i, `rel="${newRel}"`)}>`;
+      }
+      return match;
     } catch {
-      // Ignore malformed hrefs
+      return match;
     }
   });
-
-  return dom.window.document.body.innerHTML;
 }
