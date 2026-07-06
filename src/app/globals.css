@@ -114,3 +114,25 @@ th {
   background: #eee;
   border-radius: 2px;
 }
+
+/* Mobile nav scroll fade */
+.nav-scroll-container {
+  position: relative;
+}
+
+.nav-scroll-container::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.95));
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .nav-scroll-container::after {
+    display: none;
+  }
+}

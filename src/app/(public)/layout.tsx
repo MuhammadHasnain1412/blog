@@ -91,7 +91,7 @@ export default async function PublicLayout({
         }}
       >
         <Container size="xl">
-          <Box style={{ overflowX: "auto" }}>
+          <Box className="nav-scroll-container" style={{ overflowX: "auto" }}>
             <CategoryFilterBar categories={categories} />
           </Box>
         </Container>

@@ -73,9 +73,9 @@ export default function ContactPage() {
           <Divider my="xl" />
 
           <Group>
-            <ActionIconWithLink icon={IconBrandTwitter} size={24} />
-            <ActionIconWithLink icon={IconBrandYoutube} size={24} />
-            <ActionIconWithLink icon={IconBrandInstagram} size={24} />
+            <ActionIconWithLink icon={IconBrandTwitter} size={24} href="https://twitter.com/thedailymixa" />
+            <ActionIconWithLink icon={IconBrandYoutube} size={24} href="https://youtube.com/@thedailymixa" />
+            <ActionIconWithLink icon={IconBrandInstagram} size={24} href="https://instagram.com/thedailymixa" />
           </Group>
         </Box>
       </SimpleGrid>
@@ -118,12 +118,18 @@ function ContactIcon({
 function ActionIconWithLink({
   icon: Icon,
   size,
+  href,
 }: {
   icon: ContactIconComponent;
   size: number;
+  href: string;
 }) {
   return (
     <Button
+      component="a"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
       variant="outline"
       color="gray"
       radius="xl"

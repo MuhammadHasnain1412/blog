@@ -15,6 +15,8 @@ import {
   SimpleGrid,
   Flex,
   Skeleton,
+  TextInput,
+  Button,
 } from "@mantine/core";
 import Link from "next/link";
 // Refreshing TS module resolution
@@ -244,15 +246,20 @@ async function PostSections() {
                   <Text size="sm" mb="md">
                     Get the latest news directly in your inbox.
                   </Text>
-                  <Text
-                    size="xs"
-                    fw={700}
-                    tt="uppercase"
-                    td="underline"
-                    style={{ cursor: "pointer" }}
-                  >
-                    Join Now
-                  </Text>
+                  <form action="/api/subscribe" method="POST">
+                    <Stack gap="xs">
+                      <TextInput
+                        name="email"
+                        placeholder="Your email address"
+                        size="sm"
+                        required
+                        type="email"
+                      />
+                      <Button type="submit" color="dark" size="sm" fullWidth>
+                        Join Now
+                      </Button>
+                    </Stack>
+                  </form>
                 </Box>
 
                 <Box>
@@ -428,7 +435,7 @@ function NewsListItem({ post }: { post: PostForList }) {
               {post.title}
             </Title>
             <Stack gap={4}>
-              <Text size="sm" c="dimmed" lineClamp={2} hiddenFrom="xs">
+              <Text size="sm" c="dimmed" lineClamp={2}>
                 {post.excerpt}
               </Text>
               <Text size="xs" c="dimmed">

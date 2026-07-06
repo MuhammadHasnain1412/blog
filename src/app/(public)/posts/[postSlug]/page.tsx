@@ -9,7 +9,10 @@ import {
   Image,
   Stack,
   Divider,
+  Anchor,
+  Breadcrumbs,
 } from "@mantine/core";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { absolutePostUrl, absoluteUrl } from "@/lib/urls";
 import sanitizeHtml from "sanitize-html";
@@ -178,6 +181,26 @@ export default async function BlogPostPage({
       />
       <Container size="md" py={60}>
         <Stack gap="xl">
+          <Breadcrumbs
+            separator=">"
+            styles={{ separator: { color: "var(--mantine-color-dimmed)" } }}
+          >
+            <Anchor component={Link} href="/" size="sm" c="dimmed">
+              Home
+            </Anchor>
+            <Anchor
+              component={Link}
+              href={`/${post.category?.slug}`}
+              size="sm"
+              c="dimmed"
+            >
+              {post.category?.name}
+            </Anchor>
+            <Text size="sm" c="dark" lineClamp={1} maw={200}>
+              {post.title}
+            </Text>
+          </Breadcrumbs>
+
           <Stack gap="md" align="center">
             <Badge color="dark" size="lg" radius="xs" variant="outline">
               {post.category?.name || "Uncategorized"}
