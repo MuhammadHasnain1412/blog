@@ -36,8 +36,9 @@ export function createSafeAction<TInput, TOutput>(
         return { message: e.issues[0].message, success: false };
       }
       if (e && typeof e === "object" && "digest" in e) throw e;
-      console.error(e);
-      return { message: "An unexpected error occurred.", success: false };
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.error("[safe-action] Error:", errMsg, e);
+      return { message: errMsg || "An unexpected error occurred.", success: false };
     }
   };
 }
