@@ -131,7 +131,7 @@ export default function TipTapEditor({
         onChange={handleFileUpload}
       />
 
-      <RichTextEditor.Toolbar sticky stickyOffset={60}>
+      <RichTextEditor.Toolbar sticky stickyOffset={60} style={{ flexWrap: "wrap" }}>
         <RichTextEditor.ControlsGroup>
           <RichTextEditor.Bold />
           <RichTextEditor.Italic />
