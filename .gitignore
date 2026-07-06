@@ -50,6 +50,3 @@ node_modules/
 .env.production
 /public/uploads/
 *.pem
-
-# backups
-/backups/

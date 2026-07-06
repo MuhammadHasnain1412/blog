@@ -2,7 +2,7 @@ name: Database Backup
 
 on:
   schedule:
-    - cron: "0 3 * * *" # Daily at 3 AM UTC
+    - cron: "0 3 * * 0" # Weekly on Sunday at 3 AM UTC
   workflow_dispatch: # Manual trigger
 
 jobs:
@@ -10,25 +10,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Dump database and upload to S3
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-            TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
-            BACKUP_FILE="thedailymixa_${TIMESTAMP}.sql.gz"
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-            DB_URL=$(grep DATABASE_URL /var/www/thedailymixa/.env | cut -d= -f2-)
-            DB_USER=$(echo "$DB_URL" | sed -n 's|mysql://\([^:]*\):.*|\1|p')
-            DB_PASS=$(echo "$DB_URL" | sed -n 's|mysql://[^:]*:\([^@]*\)@.*|\1|p')
-            DB_NAME=$(echo "$DB_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+      - name: Install MySQL client
+        run: sudo apt-get update && sudo apt-get install -y mysql-client
 
-            mysqldump -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" --single-transaction --routines --triggers | gzip > "/tmp/${BACKUP_FILE}"
-            aws s3 cp "/tmp/${BACKUP_FILE}" "s3://${{ secrets.AWS_S3_BUCKET_NAME }}/backups/${BACKUP_FILE}"
-            aws s3 ls "s3://${{ secrets.AWS_S3_BUCKET_NAME }}/backups/" | sort | head -n -30 | awk '{print $4}' | while read file; do
-              aws s3 rm "s3://${{ secrets.AWS_S3_BUCKET_NAME }}/backups/$file"
-            done
-            rm -f "/tmp/${BACKUP_FILE}"
+      - name: Dump TiDB database
+        run: |
+          TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
+          BACKUP_FILE="thedailymixa_${TIMESTAMP}.sql.gz"
+          mkdir -p backups
+
+          DB_URL="${{ secrets.DATABASE_URL }}"
+          DB_USER=$(echo "$DB_URL" | sed -n 's|mysql://\([^:]*\):.*|\1|p')
+          DB_PASS=$(echo "$DB_URL" | sed -n 's|mysql://[^:]*:\([^@]*\)@.*|\1|p')
+          DB_HOST=$(echo "$DB_URL" | sed -n 's|mysql://[^@]*@\([^:]*\):.*|\1|p')
+          DB_PORT=$(echo "$DB_URL" | sed -n 's|mysql://[^:]*:[^@]*@[^:]*:\([^/]*\)/.*|\1|p')
+          DB_NAME=$(echo "$DB_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+
+          mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASS" \
+            --ssl-mode=REQUIRED --skip-lock-tables --no-tablespaces \
+            "$DB_NAME" | gzip > "backups/${BACKUP_FILE}"
+
+          # Keep only last 4 backups
+          ls -t backups/*.sql.gz | tail -n +5 | xargs -r rm
+
+      - name: Commit and push backup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backups/
+          git commit -m "backup: weekly database backup $(date +%Y-%m-%d)" || echo "No changes"
+          git push
