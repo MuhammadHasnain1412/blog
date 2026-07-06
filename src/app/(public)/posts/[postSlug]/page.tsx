@@ -6,18 +6,26 @@ import {
   Badge,
   Group,
   TypographyStylesProvider,
-  Image,
   Stack,
   Divider,
   Anchor,
   Breadcrumbs,
 } from "@mantine/core";
+import NextImage from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { absolutePostUrl, absoluteUrl } from "@/lib/urls";
 import sanitizeHtml from "sanitize-html";
 
 export const revalidate = 120;
+
+export async function generateStaticParams() {
+  const posts = await db.post.findMany({
+    where: { status: "PUBLISHED" },
+    select: { slug: true },
+  });
+  return posts.map((post) => ({ postSlug: post.slug }));
+}
 
 export async function generateMetadata({
   params,
@@ -46,6 +54,7 @@ export async function generateMetadata({
   return {
     title: post.title,
     description: post.excerpt ?? `Read ${post.title} on The Daily Mixa`,
+    keywords: [post.category?.name, post.title, "The Daily Mixa"].filter(Boolean),
     alternates: {
       canonical: canonicalUrl,
     },
@@ -241,11 +250,13 @@ export default async function BlogPostPage({
           </Stack>
 
           {post.coverImage && (
-            <Image
+            <NextImage
               src={post.coverImage}
-              radius="sm"
+              width={1200}
+              height={630}
               alt={post.title}
-              style={{ width: "100%" }}
+              priority
+              style={{ width: "100%", height: "auto", borderRadius: "4px" }}
             />
           )}
 

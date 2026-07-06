@@ -77,12 +77,29 @@ export default async function RootLayout({
   // ✅ Read nonce set by proxy.ts — falls back gracefully if header not present
   const nonce = (await headers()).get("x-nonce") ?? "";
 
-  // WebSite schema
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "The Daily Mixa",
     url: BASE_URL,
+  };
+
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "The Daily Mixa",
+    url: BASE_URL,
+    logo: `${BASE_URL}/icon.svg`,
+    sameAs: [
+      "https://twitter.com/thedailymixa",
+      "https://instagram.com/thedailymixa",
+      "https://youtube.com/@thedailymixa",
+    ],
+    contactPoint: {
+      "@type": "ContactPoint",
+      email: "thedailymixa@gmail.com",
+      contactType: "editorial",
+    },
   };
 
   return (
@@ -93,12 +110,17 @@ export default async function RootLayout({
         <GoogleTagManager gtmId="GTM-KP8M9TJC" />
         <GoogleAnalytics gaId={GA_ID} />
 
-        {/* WebSite schema */}
         <script
           type="application/ld+json"
           nonce={nonce}
           suppressHydrationWarning
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          nonce={nonce}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
       </head>
 

@@ -6,7 +6,6 @@ import {
   Title,
   Text,
   Card,
-  Image,
   Badge,
   Group,
   Stack,
@@ -18,6 +17,7 @@ import {
   TextInput,
   Button,
 } from "@mantine/core";
+import Image from "next/image";
 import Link from "next/link";
 // Refreshing TS module resolution
 import { absoluteUrl, postUrl } from "@/lib/urls";
@@ -25,11 +25,33 @@ import { absoluteUrl, postUrl } from "@/lib/urls";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
+  title: "The Daily Mixa — Breaking News, Analysis & Stories That Matter",
+  description:
+    "Your trusted source for breaking news, in-depth analysis, celebrity updates, and global stories. Read the latest on The Daily Mixa.",
+  keywords: ["breaking news", "daily news", "world news", "celebrity news", "analysis", "The Daily Mixa"],
   alternates: {
     canonical: absoluteUrl("/"),
   },
   openGraph: {
+    title: "The Daily Mixa — Breaking News, Analysis & Stories That Matter",
+    description:
+      "Your trusted source for breaking news, in-depth analysis, celebrity updates, and global stories.",
     url: absoluteUrl("/"),
+    type: "website",
+    images: [
+      {
+        url: absoluteUrl("/icon.svg"),
+        width: 1200,
+        height: 630,
+        alt: "The Daily Mixa",
+      },
+    ],
+  },
+  twitter: {
+    title: "The Daily Mixa — Breaking News, Analysis & Stories That Matter",
+    description:
+      "Your trusted source for breaking news, in-depth analysis, celebrity updates, and global stories.",
+    images: [absoluteUrl("/icon.svg")],
   },
 };
 
@@ -176,9 +198,12 @@ async function PostSections() {
                       heroPost.coverImage ||
                       "https://images.unsplash.com/photo-1504711428567-d1213501df05?auto=format&fit=crop&q=80&w=1200"
                     }
+                    width={800}
                     height={450}
                     alt={heroPost.title}
                     className="hover-zoom"
+                    priority
+                    style={{ width: "100%", height: "auto", objectFit: "cover" }}
                   />
                 </Box>
               </Link>
@@ -354,15 +379,17 @@ function NewsCard({
     >
       <Card p={0} radius={0} bg="transparent" className="news-card">
         <Stack gap="sm">
-          <Box style={{ overflow: "hidden" }}>
+          <Box style={{ overflow: "hidden", position: "relative", aspectRatio: compact ? "16/9" : "4/3" }}>
             <Image
               src={
                 post.coverImage ||
                 "https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=800"
               }
-              height={compact ? 180 : 240}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               alt={post.title}
               className="hover-zoom"
+              style={{ objectFit: "cover" }}
             />
           </Box>
           <Stack gap={4}>
@@ -414,15 +441,17 @@ function NewsListItem({ post }: { post: PostForList }) {
     >
       <Flex gap="xl" direction={{ base: "column", sm: "row" }}>
         <Box style={{ flex: 1 }}>
-          <Box style={{ overflow: "hidden" }}>
+          <Box style={{ overflow: "hidden", position: "relative", aspectRatio: "16/9" }}>
             <Image
               src={
                 post.coverImage ||
                 "https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=800"
               }
-              height={160}
+              fill
+              sizes="(max-width: 640px) 100vw, 33vw"
               alt={post.title}
               className="hover-zoom"
+              style={{ objectFit: "cover" }}
             />
           </Box>
         </Box>

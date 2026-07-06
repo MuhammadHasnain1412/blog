@@ -59,18 +59,20 @@ export default async function PublicLayout({
         <Container size="xl" py={40}>
           <Stack align="center" gap={0}>
             <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
-              <Title
-                order={1}
+              <Text
+                component="span"
+                fw={700}
                 style={{
                   fontSize: "4.5rem",
                   letterSpacing: "2px",
                   textTransform: "uppercase",
                   lineHeight: 1,
+                  display: "block",
                 }}
                 ta="center"
               >
                 The Daily Mixa
-              </Title>
+              </Text>
             </Link>
             <Divider my="md" w={100} color="dark" size="xl" />
           </Stack>

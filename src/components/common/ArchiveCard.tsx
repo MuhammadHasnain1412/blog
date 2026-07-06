@@ -1,7 +1,8 @@
 "use client";
 
 import { postUrl } from "@/lib/urls";
-import { Card, Image, Stack, Group, Badge, Title, Text } from "@mantine/core";
+import { Card, Stack, Group, Badge, Title, Text, Box } from "@mantine/core";
+import Image from "next/image";
 import Link from "next/link";
 
 interface ArchiveCardProps {
@@ -28,14 +29,18 @@ export default function ArchiveCard({ post }: ArchiveCardProps) {
     >
       <Card padding="lg" radius="md" withBorder className="hover-card">
         <Card.Section>
-          <Image
-            src={
-              post.coverImage ||
-              "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&q=80&w=800"
-            }
-            height={160}
-            alt={post.title}
-          />
+          <Box style={{ position: "relative", aspectRatio: "16/9" }}>
+            <Image
+              src={
+                post.coverImage ||
+                "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&q=80&w=800"
+              }
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              alt={post.title}
+              style={{ objectFit: "cover" }}
+            />
+          </Box>
         </Card.Section>
 
         <Stack mt="md" gap="xs">

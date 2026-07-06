@@ -5,12 +5,12 @@ import {
   Text,
   Container,
   Badge,
-  Image,
   Stack,
   Divider,
   Box,
   Group,
 } from "@mantine/core";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -19,7 +19,13 @@ import { db } from "@/lib/prisma";
 
 export const revalidate = 60;
 
-// ── Metadata + canonical ──────────────────────────────────────────────────────
+export async function generateStaticParams() {
+  const categories = await db.category.findMany({
+    where: { post: { some: { status: "PUBLISHED" } } },
+    select: { slug: true },
+  });
+  return categories.map((cat) => ({ categorySlug: cat.slug }));
+}
 
 export async function generateMetadata({
   params,
@@ -35,21 +41,19 @@ export async function generateMetadata({
 
   if (!category) return { title: "Not Found" };
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? "https://thedailymixa.com";
-
   return {
     title: category.name,
     description: `Browse all ${category.name} stories on The Daily Mixa.`,
-    // ✅ Canonical — prevents duplicate content if category is accessed via
-    // multiple paths (e.g. with/without trailing slash)
+    keywords: [category.name, `${category.name} news`, "The Daily Mixa"],
     alternates: {
-      canonical: `${baseUrl}/${categorySlug}`,
+      canonical: absoluteUrl(`/${categorySlug}`),
     },
     openGraph: {
       title: `${category.name} — The Daily Mixa`,
       description: `Browse all ${category.name} stories on The Daily Mixa.`,
-      url: `${baseUrl}/${categorySlug}`,
+      url: absoluteUrl(`/${categorySlug}`),
       type: "website",
+      images: [{ url: absoluteUrl("/icon.svg"), width: 1200, height: 630, alt: "The Daily Mixa" }],
     },
   };
 }
@@ -91,8 +95,6 @@ export default async function CategoryPage({
     return notFound();
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? "https://thedailymixa.com";
-
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -107,6 +109,7 @@ export default async function CategoryPage({
         "@type": "ListItem",
         position: 2,
         name: category.name,
+        item: absoluteUrl(`/${categorySlug}`),
       },
     ],
   };
@@ -115,7 +118,7 @@ export default async function CategoryPage({
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: category.name,
-    url: `${baseUrl}/${categorySlug}`,
+    url: absoluteUrl(`/${categorySlug}`),
     description: `Browse all ${category.name} stories on The Daily Mixa.`,
     mainEntity: {
       "@type": "ItemList",
@@ -172,15 +175,17 @@ export default async function CategoryPage({
               >
                 <Card p={0} radius={0} bg="transparent" className="news-card">
                   <Stack gap="md">
-                    <Box style={{ overflow: "hidden" }}>
+                    <Box style={{ overflow: "hidden", position: "relative", aspectRatio: "4/3" }}>
                       <Image
                         src={
                           post.coverImage ||
                           "https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=800"
                         }
-                        height={240}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         alt={post.title}
                         className="hover-zoom"
+                        style={{ objectFit: "cover" }}
                       />
                     </Box>
                     <Stack gap={4}>

@@ -23,6 +23,7 @@ type ContactIconComponent = typeof IconMail;
 export const metadata: Metadata = {
   title: "Contact",
   description: "Get in touch with The Daily Mixa editorial team.",
+  keywords: ["contact The Daily Mixa", "news tips", "advertise", "editorial contact"],
   alternates: {
     canonical: absoluteUrl("/contact"),
   },
@@ -31,6 +32,7 @@ export const metadata: Metadata = {
     description: "Get in touch with The Daily Mixa editorial team.",
     url: absoluteUrl("/contact"),
     type: "website",
+    images: [{ url: absoluteUrl("/icon.svg"), width: 1200, height: 630, alt: "The Daily Mixa" }],
   },
 };
 

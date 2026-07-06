@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   title: "About",
   description:
     "Learn about The Daily Mixa, our mission, and our editorial approach.",
+  keywords: ["about The Daily Mixa", "our mission", "editorial team", "news publication"],
   alternates: {
     canonical: absoluteUrl("/about"),
   },
@@ -27,6 +28,7 @@ export const metadata: Metadata = {
       "Learn about The Daily Mixa, our mission, and our editorial approach.",
     url: absoluteUrl("/about"),
     type: "website",
+    images: [{ url: absoluteUrl("/icon.svg"), width: 1200, height: 630, alt: "The Daily Mixa" }],
   },
 };
 
