@@ -59,4 +59,5 @@ jobs:
             rm -f public/sitemap-*.xml
             npm ci --omit=dev
             npx prisma generate
-            pm2 restart all
+            pm2 describe blog > /dev/null 2>&1 && pm2 restart blog --update-env || pm2 start npm --name "blog" -- start
+            pm2 save
