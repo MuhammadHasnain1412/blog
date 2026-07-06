@@ -33,7 +33,7 @@ export default auth(function middleware(req: NextRequest) {
     // ✅ Added google-analytics.com for GA4 image pings
     `img-src 'self' data: blob: https://images.unsplash.com https://thedailymixa-images.s3.eu-north-1.amazonaws.com https://www.google-analytics.com`,
     // ✅ Added GA4 domains for analytics data collection
-    `connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com`,
+    `connect-src 'self' https://thedailymixa.com https://www.thedailymixa.com https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com`,
     `frame-ancestors 'none'`,
   ].join("; ");
   // Set headers on request
