@@ -8,7 +8,6 @@ import {
   TypographyStylesProvider,
   Stack,
   Divider,
-  Anchor,
   Breadcrumbs,
   Card,
   Box,
@@ -20,6 +19,7 @@ import { notFound } from "next/navigation";
 import { absolutePostUrl, absoluteUrl, postUrl } from "@/lib/urls";
 import sanitizeHtml from "sanitize-html";
 import ShareButtons from "@/components/posts/ShareButtons";
+import { LinkAnchor } from "@/components/common/LinkElements";
 
 export const revalidate = 120;
 
@@ -220,17 +220,12 @@ export default async function BlogPostPage({
             separator=">"
             styles={{ separator: { color: "var(--mantine-color-dimmed)" } }}
           >
-            <Anchor component={Link} href="/" size="sm" c="dimmed">
+            <LinkAnchor href="/" size="sm" c="dimmed">
               Home
-            </Anchor>
-            <Anchor
-              component={Link}
-              href={`/${post.category?.slug}`}
-              size="sm"
-              c="dimmed"
-            >
+            </LinkAnchor>
+            <LinkAnchor href={`/${post.category?.slug}`} size="sm" c="dimmed">
               {post.category?.name}
-            </Anchor>
+            </LinkAnchor>
             <Text size="sm" c="dark" lineClamp={1} maw={200}>
               {post.title}
             </Text>

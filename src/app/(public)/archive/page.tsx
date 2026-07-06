@@ -6,10 +6,9 @@ import {
   Text,
   SimpleGrid,
   Group,
-  Button,
 } from "@mantine/core";
-import Link from "next/link";
 import ArchiveCard from "@/components/common/ArchiveCard";
+import { LinkButton } from "@/components/common/LinkElements";
 import { absoluteUrl } from "@/lib/urls";
 
 export const revalidate = 120;
@@ -134,27 +133,25 @@ export default async function ArchivePage({
       {totalPages > 1 && (
         <Group justify="center" mt={60} gap="sm">
           {currentPage > 1 && (
-            <Button
-              component={Link}
+            <LinkButton
               href={`/archive?page=${currentPage - 1}`}
               variant="outline"
               color="dark"
             >
               Previous
-            </Button>
+            </LinkButton>
           )}
           <Text size="sm" c="dimmed" px="md">
             Page {currentPage} of {totalPages}
           </Text>
           {currentPage < totalPages && (
-            <Button
-              component={Link}
+            <LinkButton
               href={`/archive?page=${currentPage + 1}`}
               variant="outline"
               color="dark"
             >
               Next
-            </Button>
+            </LinkButton>
           )}
         </Group>
       )}
