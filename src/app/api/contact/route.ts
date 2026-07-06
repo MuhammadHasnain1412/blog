@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     }
 
     const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: "The Daily Mixa <onboarding@resend.dev>",
       to: "thedailymixa@gmail.com",
       subject: `Contact Form: ${subject}`,
@@ -28,8 +28,18 @@ export async function POST(request: Request) {
       `,
     });
 
-    return NextResponse.json({ success: true });
-  } catch {
+    if (error) {
+      console.error("Resend error:", JSON.stringify(error));
+      return NextResponse.json(
+        { error: error.message },
+        { status: 422 }
+      );
+    }
+
+    console.log("Email sent:", JSON.stringify(data));
+    return NextResponse.json({ success: true, id: data?.id });
+  } catch (err) {
+    console.error("Contact API error:", err);
     return NextResponse.json(
       { error: "Failed to send message" },
       { status: 500 }
