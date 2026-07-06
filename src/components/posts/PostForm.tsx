@@ -75,12 +75,11 @@ export default function PostForm({
             defaultValue={initialData?.excerpt ?? undefined}
           />
 
-          <SimpleGrid cols={{ base: 1, sm: 3 }}>
+          <SimpleGrid cols={{ base: 1, sm: 3 }} style={{ alignItems: "flex-end" }}>
             <FileInput
               label="Cover Image"
               name="coverImage"
-              placeholder={isEditing ? "Change thumbnail" : "Upload thumbnail"}
-              description="Recommended size: 1200x630"
+              placeholder={isEditing ? "Change thumbnail (1200×630)" : "Upload thumbnail (1200×630)"}
               leftSection={<IconUpload size={16} />}
               accept="image/*"
               clearable

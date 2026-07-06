@@ -6,10 +6,13 @@ import {
   Text,
   Stack,
   Divider,
+  ActionIcon,
 } from "@mantine/core";
+import { IconSearch } from "@tabler/icons-react";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
 import CategoryFilterBar from "@/components/category-filter-bar";
+import BackToTop from "@/components/common/BackToTop";
 
 export default async function PublicLayout({
   children,
@@ -43,7 +46,12 @@ export default async function PublicLayout({
             <Text size="xs" fw={500} c="dimmed">
               {today}
             </Text>
-            <Group gap="xs">
+            <Group gap="sm">
+              <Link href="/search" aria-label="Search">
+                <ActionIcon variant="subtle" color="dark" size="sm">
+                  <IconSearch size={16} />
+                </ActionIcon>
+              </Link>
               <Link href="/login" style={{ textDecoration: "none" }}>
                 <Text size="xs" fw={600} c="dark">
                   Sign In
@@ -153,6 +161,8 @@ export default async function PublicLayout({
           </Stack>
         </Container>
       </footer>
+
+      <BackToTop />
     </Box>
   );
 }

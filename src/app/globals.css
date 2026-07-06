@@ -136,3 +136,18 @@ th {
     display: none;
   }
 }
+
+/* Minimum touch targets for mobile accessibility */
+@media (max-width: 768px) {
+  nav a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  footer a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}

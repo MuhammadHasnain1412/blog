@@ -14,8 +14,6 @@ import {
   SimpleGrid,
   Flex,
   Skeleton,
-  TextInput,
-  Button,
 } from "@mantine/core";
 import Image from "next/image";
 import Link from "next/link";
@@ -237,7 +235,7 @@ async function PostSections() {
                   <Text size="sm" c="dimmed">
                     {new Date(
                       heroPost.publishedAt || heroPost.createdAt,
-                    ).toLocaleDateString()}
+                    ).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
                   </Text>
                 </Group>
               </Stack>
@@ -260,33 +258,6 @@ async function PostSections() {
           <Box style={{ flex: 1 }}>
             <Box style={{ position: "sticky", top: 80 }}>
               <Stack gap="xl">
-                <Box
-                  p="xl"
-                  bg="gray.0"
-                  style={{ borderLeft: "4px solid #000" }}
-                >
-                  <Title order={4} mb="md">
-                    SUBSCRIBE
-                  </Title>
-                  <Text size="sm" mb="md">
-                    Get the latest news directly in your inbox.
-                  </Text>
-                  <form action="/api/subscribe" method="POST">
-                    <Stack gap="xs">
-                      <TextInput
-                        name="email"
-                        placeholder="Your email address"
-                        size="sm"
-                        required
-                        type="email"
-                      />
-                      <Button type="submit" color="dark" size="sm" fullWidth>
-                        Join Now
-                      </Button>
-                    </Stack>
-                  </form>
-                </Box>
-
                 <Box>
                   <Title
                     order={4}
@@ -412,7 +383,7 @@ function NewsCard({
               {post.category.name} •{" "}
               {new Date(
                 post.publishedAt || post.createdAt,
-              ).toLocaleDateString()}
+              ).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
             </Text>
           </Stack>
         </Stack>
@@ -471,7 +442,7 @@ function NewsListItem({ post }: { post: PostForList }) {
                 By {post.author.name} •{" "}
                 {new Date(
                   post.publishedAt || post.createdAt,
-                ).toLocaleDateString()}
+                ).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
               </Text>
             </Stack>
           </Stack>

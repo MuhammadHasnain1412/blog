@@ -206,7 +206,7 @@ export default async function CategoryPage({
                         <Text size="xs" c="dimmed">
                           {new Date(
                             post.publishedAt || post.createdAt,
-                          ).toLocaleDateString()}
+                          ).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
                         </Text>
                       </Group>
                     </Stack>

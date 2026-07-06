@@ -10,12 +10,16 @@ import {
   Divider,
   Anchor,
   Breadcrumbs,
+  Card,
+  Box,
+  SimpleGrid,
 } from "@mantine/core";
 import NextImage from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { absolutePostUrl, absoluteUrl } from "@/lib/urls";
+import { absolutePostUrl, absoluteUrl, postUrl } from "@/lib/urls";
 import sanitizeHtml from "sanitize-html";
+import ShareButtons from "@/components/posts/ShareButtons";
 
 export const revalidate = 120;
 
@@ -101,13 +105,35 @@ export default async function BlogPostPage({
       createdAt: true,
       updatedAt: true,
       author: { select: { name: true } },
-      category: { select: { name: true, slug: true } },
+      category: { select: { id: true, name: true, slug: true } },
     },
   });
 
   if (!post || post.status !== "PUBLISHED") {
     return notFound();
   }
+
+  const wordCount = post.content.replace(/<[^>]*>/g, "").split(/\s+/).filter(Boolean).length;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
+  const relatedPosts = post.category
+    ? await db.post.findMany({
+        where: {
+          status: "PUBLISHED",
+          slug: { not: postSlug },
+          category: { id: post.category.id },
+        },
+        select: {
+          title: true,
+          slug: true,
+          coverImage: true,
+          publishedAt: true,
+          createdAt: true,
+        },
+        orderBy: { publishedAt: "desc" },
+        take: 3,
+      })
+    : [];
 
   const canonicalUrl = absolutePostUrl(postSlug);
 
@@ -243,8 +269,18 @@ export default async function BlogPostPage({
                 <Text fw={700}>
                   {new Date(
                     post.publishedAt || post.createdAt,
-                  ).toLocaleDateString()}
+                  ).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
                 </Text>
+              </Stack>
+              <Stack gap={2}>
+                <Text size="xs" fw={700} tt="uppercase" c="dimmed">
+                  Read Time
+                </Text>
+                <Text fw={700}>{readingTime} min read</Text>
               </Stack>
             </Group>
           </Stack>
@@ -270,6 +306,63 @@ export default async function BlogPostPage({
           </Container>
 
           <Divider my="xl" />
+
+          <Group justify="space-between" align="center">
+            <Text size="sm" fw={700} tt="uppercase" c="dimmed">
+              Share this article
+            </Text>
+            <ShareButtons url={canonicalUrl} title={post.title} />
+          </Group>
+
+          {relatedPosts.length > 0 && (
+            <>
+              <Divider my="xl" />
+              <Stack gap="xl">
+                <Title order={3} tt="uppercase" style={{ letterSpacing: "2px" }}>
+                  More from {post.category?.name}
+                </Title>
+                <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="xl">
+                  {relatedPosts.map((related) => (
+                    <Link
+                      key={related.slug}
+                      href={postUrl(related.slug)}
+                      style={{ textDecoration: "none", color: "inherit" }}
+                    >
+                      <Card p={0} radius={0} bg="transparent" className="news-card">
+                        <Stack gap="sm">
+                          <Box style={{ overflow: "hidden", position: "relative", aspectRatio: "16/9" }}>
+                            <NextImage
+                              src={
+                                related.coverImage ||
+                                "https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&q=80&w=800"
+                              }
+                              fill
+                              sizes="(max-width: 640px) 100vw, 33vw"
+                              alt={related.title}
+                              className="hover-zoom"
+                              style={{ objectFit: "cover" }}
+                            />
+                          </Box>
+                          <Title order={4} lineClamp={2} style={{ fontSize: "1rem" }}>
+                            {related.title}
+                          </Title>
+                          <Text size="xs" c="dimmed">
+                            {new Date(
+                              related.publishedAt || related.createdAt,
+                            ).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </Text>
+                        </Stack>
+                      </Card>
+                    </Link>
+                  ))}
+                </SimpleGrid>
+              </Stack>
+            </>
+          )}
         </Stack>
       </Container>
     </article>

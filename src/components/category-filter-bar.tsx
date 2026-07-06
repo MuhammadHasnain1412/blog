@@ -76,7 +76,7 @@ export default function CategoryFilterBar({ categories }: Props) {
   if (categories.length === 0) return null;
 
   return (
-    <Group gap="xl" h={50} justify="center" wrap="nowrap">
+    <Group gap="xl" h={50} justify="center" wrap="nowrap" style={{ minHeight: 48 }}>
       <Link
         href="/"
         onClick={(event) => handleSelect("all", event)}
