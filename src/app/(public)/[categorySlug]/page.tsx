@@ -39,7 +39,7 @@ export async function generateMetadata({
     select: { name: true },
   });
 
-  if (!category) return { title: "Not Found" };
+  if (!category) return notFound();
 
   return {
     title: category.name,

@@ -45,12 +45,13 @@ export async function generateMetadata({
       coverImage: true,
       publishedAt: true,
       createdAt: true,
+      status: true,
       author: { select: { name: true } },
       category: { select: { name: true } },
     },
   });
 
-  if (!post) return { title: "Not Found" };
+  if (!post || post.status !== "PUBLISHED") return notFound();
 
   const canonicalUrl = absolutePostUrl(postSlug);
   const ogImage = post.coverImage || absoluteUrl("/icon.svg");
